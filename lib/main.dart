@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/pages/appointments.dart';
+import 'package:flutter_app/pages/home.dart';
+import 'package:flutter_app/pages/profile.dart';
+import 'package:flutter_app/pages/store.dart';
 
-/// Flutter code sample for [NavigationBar].
+void main() => runApp(const App());
 
-void main() => runApp(const NavigationBarApp());
-
-class NavigationBarApp extends StatelessWidget {
-  const NavigationBarApp({super.key});
+class App extends StatelessWidget {
+  const App({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -50,48 +52,16 @@ class _NavigationState extends State<Navigation> {
       ),
       body: <Widget>[
         /// Home page
-        Card(
-          shadowColor: Colors.transparent,
-          margin: const EdgeInsets.all(8.0),
-          child: SizedBox.expand(
-            child: Center(
-              child: Text('Home page', style: theme.textTheme.titleLarge),
-            ),
-          ),
-        ),
+        Home(theme: theme),
 
         // Appointments
-        Card(
-          shadowColor: Colors.transparent,
-          margin: const EdgeInsets.all(8.0),
-          child: SizedBox.expand(
-            child: Center(
-              child: Text('Appointments', style: theme.textTheme.titleLarge),
-            ),
-          ),
-        ),
+        Appointments(theme: theme),
 
         /// Store page
-        Card(
-          shadowColor: Colors.transparent,
-          margin: const EdgeInsets.all(8.0),
-          child: SizedBox.expand(
-            child: Center(
-              child: Text('Store', style: theme.textTheme.titleLarge),
-            ),
-          ),
-        ),
+        Store(theme: theme),
 
         // Profile
-        Card(
-          shadowColor: Colors.transparent,
-          margin: const EdgeInsets.all(8.0),
-          child: SizedBox.expand(
-            child: Center(
-              child: Text('Profile', style: theme.textTheme.titleLarge),
-            ),
-          ),
-        ),
+        Profile(theme: theme),
       ][currentPageIndex],
     );
   }
