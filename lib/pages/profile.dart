@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/pages/pets.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
@@ -10,11 +11,7 @@ class Profile extends StatelessWidget {
     return Card(
       shadowColor: Colors.transparent,
       margin: const EdgeInsets.all(8.0),
-      child: SizedBox.expand(
-        child: Center(
-          child: Text('Profile', style: theme.textTheme.titleLarge),
-        ),
-      ),
+      child: SizedBox.expand(child: Center(child: PetList())),
     );
   }
 }
