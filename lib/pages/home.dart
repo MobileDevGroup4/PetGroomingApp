@@ -4,12 +4,22 @@ import '../widgets/package_card.dart';
 import 'package_detail.dart';
 
 class Home extends StatelessWidget {
-  const Home({super.key, required this.theme});
+  const Home({super.key});
 
-  final ThemeData theme;
+  String _highlightsFor(pack) {
+    final silver = packages.firstWhere((p) => p.id == 'silver');
+    if (pack.id == 'silver') return '';
+    final base = silver.services.map((e) => e.toLowerCase()).toSet();
+    final added = pack.services.where((s) => !base.contains(s.toLowerCase())).toList();
+    if (added.isEmpty) return '';
+    final preview = added.length > 2 ? '${added.take(2).join(', ')}…' : added.join(', ');
+    return 'Adds: $preview';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Welcome to Pet Grooming'),
@@ -20,16 +30,11 @@ class Home extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ---- TITLE SECTION ----
             Text(
               'Our Packages',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-
-            // ---- GRID OF PACKAGE CARDS ----
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -44,6 +49,7 @@ class Home extends StatelessWidget {
                 final pack = packages[index];
                 return PackageCard(
                   pack: pack,
+                  highlightsText: _highlightsFor(pack),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -54,24 +60,6 @@ class Home extends StatelessWidget {
                 );
               },
             ),
-
-            const SizedBox(height: 24),
-            const Divider(height: 32),
-
-            // ---- INFO SECTION ----
-            Text(
-              'About Our Services',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'We offer professional grooming packages for your pets, '
-              'adapted to their needs and comfort. Each package includes '
-              'specific treatments to keep your pets happy and healthy.',
-            ),
-            const SizedBox(height: 40),
           ],
         ),
       ),
