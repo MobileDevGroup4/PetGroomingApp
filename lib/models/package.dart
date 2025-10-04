@@ -3,8 +3,9 @@ class Package {
   final String name;
   final String shortDescription;
   final List<String> services;
-  final String priceLabel; // "30 CHF"
-  final String badge;      // "Best Seller", "New Arrival", "Popular"
+  final String priceLabel;
+  final String badge;
+  final int durationMinutes;
 
   const Package({
     required this.id,
@@ -13,5 +14,6 @@ class Package {
     required this.services,
     required this.priceLabel,
     required this.badge,
+    required this.durationMinutes,
   });
 }

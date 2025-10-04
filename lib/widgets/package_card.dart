@@ -4,13 +4,20 @@ import '../models/package.dart';
 class PackageCard extends StatelessWidget {
   final Package pack;
   final VoidCallback? onTap;
+  final String? highlightsText;
 
-  const PackageCard({super.key, required this.pack, this.onTap});
+  const PackageCard({
+    super.key,
+    required this.pack,
+    this.onTap,
+    this.highlightsText,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 1.5,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -19,13 +26,13 @@ class PackageCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Ligne supérieure: badge "tag" + durée compacte à droite
+              // Ligne supérieure : badge + durée à droite
               Row(
                 children: [
-                  _BadgeTag(text: pack.badge), // << plus discret qu'un Chip
+                  _BadgeTag(text: pack.badge),
                   const Spacer(),
-                  Flexible( // évite l'overflow
-                    child: FittedBox( // se compresse si nécessaire
+                  Flexible(
+                    child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerRight,
                       child: Row(
@@ -52,7 +59,10 @@ class PackageCard extends StatelessWidget {
               Center(
                 child: Text(
                   pack.name,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -63,12 +73,37 @@ class PackageCard extends StatelessWidget {
                 pack.shortDescription,
                 style: const TextStyle(color: Colors.black54),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
+
+              // Highlights (si fournis)
+              if (highlightsText != null && highlightsText!.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.add_circle_outline, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        highlightsText!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
 
               // Prix
               Text(
                 pack.priceLabel,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -78,7 +113,7 @@ class PackageCard extends StatelessWidget {
   }
 }
 
-// Petit "tag" discret pour le badge (remplace le Chip)
+// Petit "tag" discret pour le badge
 class _BadgeTag extends StatelessWidget {
   final String text;
   const _BadgeTag({required this.text});
@@ -90,7 +125,7 @@ class _BadgeTag extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black26),
-        color: Colors.white.withOpacity(0.6), // léger, + discret
+        color: Colors.white.withOpacity(0.6),
       ),
       child: Text(
         text,

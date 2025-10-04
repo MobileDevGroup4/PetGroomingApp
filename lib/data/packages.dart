@@ -8,6 +8,7 @@ const packages = <Package>[
     services: ['Bath', 'Brushing', 'Ear cleaning'],
     priceLabel: '30 CHF',
     badge: 'Best Seller',
+    durationMinutes: 30,
   ),
   Package(
     id: 'gold',
@@ -16,6 +17,7 @@ const packages = <Package>[
     services: ['Bath', 'Brushing', 'Nail clipping', 'Ear cleaning'],
     priceLabel: '50 CHF',
     badge: 'New Arrival',
+    durationMinutes: 60,
   ),
   Package(
     id: 'platinum',
@@ -30,5 +32,6 @@ const packages = <Package>[
     ],
     priceLabel: '100 CHF',
     badge: 'Popular',
+    durationMinutes: 45,
   ),
 ];
