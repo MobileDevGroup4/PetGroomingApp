@@ -18,6 +18,7 @@ class PetTile extends StatelessWidget {
           ),
           title: Text(pet.name),
           subtitle: Text('Hardcoded dog named ${pet.name}'),
+          onTap: (() => ()),
         ),
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/pages/pets.dart';
+import 'package:flutter_app/pages/pet/pet_list.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
