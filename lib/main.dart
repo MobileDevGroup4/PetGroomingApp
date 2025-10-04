@@ -60,7 +60,8 @@ class _NavigationState extends State<Navigation> {
       ),
       body: <Widget>[
         /// Home page
-        Home(theme: theme),
+        const Home(),
+
 
         // Appointments
         Appointments(theme: theme),
