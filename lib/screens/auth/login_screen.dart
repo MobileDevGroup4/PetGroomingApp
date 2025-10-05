@@ -43,9 +43,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        // Navigate to home/dashboard
-        // TODO: Replace with actual dashboard navigation
-        Navigator.of(context).pushReplacementNamed('/home');
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login successful!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate back to main app
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
