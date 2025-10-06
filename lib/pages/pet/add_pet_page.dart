@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/models/pet.dart';
+import 'package:flutter_app/services/pet_service.dart';
 
 class AddPetPage extends StatefulWidget {
   @override
@@ -8,6 +9,7 @@ class AddPetPage extends StatefulWidget {
 
 class _AddPetPageState extends State<AddPetPage> {
   final _formKey = GlobalKey<FormState>();
+  PetService petService = PetService();
   String _name = '';
   String _breed = '';
   int _age = 0;
@@ -16,8 +18,9 @@ class _AddPetPageState extends State<AddPetPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final newPet = Pet(name: _name, breed: _breed, age: _age);
-      Navigator.pop(context, newPet); // return Pet to PetList
+      //final newPet = Pet(name: _name, breed: _breed, age: _age);
+      //Navigator.pop(context, newPet);
+      petService.addPet(_name, _breed, _age);
     }
   }
 
