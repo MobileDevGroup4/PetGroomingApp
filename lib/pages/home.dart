@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/models/package.dart';
 import '../data/packages.dart';
 import '../widgets/package_card.dart';
 import 'package_detail.dart';
@@ -6,7 +7,7 @@ import 'package_detail.dart';
 class Home extends StatelessWidget {
   const Home({super.key});
 
-  String _highlightsFor(pack) {
+  String _highlightsFor(Package pack) {
     final silver = packages.firstWhere((p) => p.id == 'silver');
     if (pack.id == 'silver') return '';
     final base = silver.services.map((e) => e.toLowerCase()).toSet();

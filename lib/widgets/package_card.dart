@@ -125,7 +125,7 @@ class _BadgeTag extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black26),
-        color: Colors.white.withOpacity(0.6),
+        color: Colors.white.withValues(alpha: 0.6),
       ),
       child: Text(
         text,
