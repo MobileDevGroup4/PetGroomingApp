@@ -1,71 +1,72 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 
 class AddPetPage extends StatefulWidget {
   @override
-  _AddPetPageState createState() => _AddPetPageState();
+  State<AddPetPage> createState() => _AddPetPageState();
 }
 
 class _AddPetPageState extends State<AddPetPage> {
   final _formKey = GlobalKey<FormState>();
-  PetService petService = PetService();
-  String _name = '';
-  String _breed = '';
-  int _age = 0;
+  final _petService = PetService();
 
-  void _submit() {
+  String _name = '', _breed = '';
+  dynamic _age = 0;
+  final List<int> _ageOptions = List.generate(32, (i) => i); // 0–31
+
+  void _submit() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-
-      //final newPet = Pet(name: _name, breed: _breed, age: _age);
-      //Navigator.pop(context, newPet);
-      petService.addPet(_name, _breed, _age);
+      try {
+        await _petService.addPet(_name, _breed, _age); // await!
+        if (!mounted) return;
+        Navigator.pop(context);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add pet: $e')));
+      }
     }
   }
 
+  InputDecoration _field(String label) => InputDecoration(labelText: label);
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Add New Pet")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: "Pet name"),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Enter a name" : null,
-                onSaved: (value) => _name = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: "Pet breed"),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Enter a breed" : null,
-                onSaved: (value) => _breed = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: "Pet age"),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Enter age";
-                  }
-                  if (int.tryParse(value) == null) {
-                    return "Age must be a number";
-                  }
-                  return null;
-                },
-                onSaved: (value) => _age = int.parse(value!),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(onPressed: _submit, child: Text("Add")),
-            ],
-          ),
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text("Add Pet")),
+    body: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: ListView(
+          children: [
+            TextFormField(
+              decoration: _field("Name"),
+              validator: (v) => v!.isEmpty ? "Enter name" : null,
+              onSaved: (v) => _name = v!,
+            ),
+            TextFormField(
+              decoration: _field("Breed"),
+              validator: (v) => v!.isEmpty ? "Enter breed" : null,
+              onSaved: (v) => _breed = v!,
+            ),
+            DropdownButtonFormField<int>(
+              decoration: _field("Age"),
+              initialValue: _age,
+              items: _ageOptions
+                  .map(
+                    (age) => DropdownMenuItem(value: age, child: Text('$age')),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _age = v),
+              validator: (v) => v == null ? "Select age" : null,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: _submit, child: const Text("Add Pet")),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }

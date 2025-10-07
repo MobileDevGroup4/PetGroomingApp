@@ -15,8 +15,6 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // for testing
   await FirebaseAuth.instance.signInAnonymously();
-
-  // for checking if the anonymous sign in works
   debugPrint('uid = ${FirebaseAuth.instance.currentUser?.uid}');
 
   runApp(const App());
@@ -27,10 +25,14 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamProvider<List<Pet>>.value(
-      value: PetService().pets, // <-- Stream<List<Pet>>
-      initialData: const [], // required in null-safety
-      child: MaterialApp(home: Navigation()),
+    return StreamProvider<List<Pet>>(
+      create: (_) => PetService().pets,
+      initialData: const [],
+      child: MaterialApp(
+        // <-- remove const
+        debugShowCheckedModeBanner: false,
+        home: const Navigation(),
+      ),
     );
   }
 }
