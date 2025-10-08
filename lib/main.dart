@@ -10,13 +10,16 @@ import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
- // await FirebaseAuth.instance.signInAnonymously(); // <<< important
-  runApp(App());
+
+  // If your Firestore rules require auth to read/write, uncomment this:
+  // await FirebaseAuth.instance.signInAnonymously();
+
+  runApp(const App());
 }
 
 class App extends StatelessWidget {
@@ -34,13 +37,7 @@ class App extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-
-          // If user is logged in, show Navigation
-          if (snapshot.hasData) {
-            return const Navigation();
-          }
-
-          // If user is NOT logged in, show Navigation (guests can browse)
+          // Guests can browse too; Navigation adapts to auth state
           return const Navigation();
         },
       ),
@@ -68,7 +65,7 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // 1) Construis la liste des onglets (destinations)
+        // Tabs depend on login (Appointments only when logged in)
         final List<NavigationDestination> destinations = [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -86,15 +83,15 @@ class _NavigationState extends State<Navigation> {
           ),
         ];
 
-        // 2) Construis les pages correspondantes
+        // Pages in the same order as destinations
         final List<Widget> pages = [
-          const Home(), // index 0
-          if (isLoggedIn) Appointments(theme: theme), // index 1 si logged
-          Store(theme: theme), // décale si pas logged
+          const Home(),                   // index 0
+          if (isLoggedIn) Appointments(theme: theme),
+          Store(theme: theme),
           Profile(theme: theme),
         ];
 
-        // 3) SÉCURISER L’INDEX quand la longueur change (login/logout)
+        // ✅ Clamp index to avoid "selectedIndex out of range" after login/logout
         final int safeIndex =
             (currentPageIndex).clamp(0, destinations.length - 1) as int;
 
@@ -127,10 +124,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: safeIndex,          // ✅ utilise l’index sécurisé
+            selectedIndex: safeIndex,      // use clamped index
             destinations: destinations,
           ),
-          body: pages[safeIndex],               // ✅ idem ici
+          body: pages[safeIndex],          // use clamped index
         );
       },
     );
@@ -155,13 +152,8 @@ class _NavigationState extends State<Navigation> {
                 try {
                   await AuthService().logout();
 
-<<<<<<< HEAD
-                  // ✅ IMPORTANT : remets l’onglet sur "Home" (index 0)
+                  // ✅ Reset tab to Home after logout to avoid invalid index
                   if (mounted) {
-=======
-                  // Reset the index to a valid value after logout
-                  if (context.mounted) {
->>>>>>> origin/dev
                     setState(() {
                       currentPageIndex = 0;
                     });
