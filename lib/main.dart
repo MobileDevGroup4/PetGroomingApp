@@ -15,7 +15,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await FirebaseAuth.instance.signInAnonymously(); // <<< important
+ // await FirebaseAuth.instance.signInAnonymously(); // <<< important
   runApp(App());
 }
 
@@ -68,13 +68,13 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Different navigation items based on login status
+        // 1) Construis la liste des onglets (destinations)
         final List<NavigationDestination> destinations = [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-          if (isLoggedIn) // Only show Appointments if logged in
+          if (isLoggedIn)
             const NavigationDestination(
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
@@ -86,14 +86,17 @@ class _NavigationState extends State<Navigation> {
           ),
         ];
 
-        // Different pages based on login status
+        // 2) Construis les pages correspondantes
         final List<Widget> pages = [
-          const Home(), // Index 0
-          if (isLoggedIn)
-            Appointments(theme: theme), // Index 1 (only if logged in)
-          Store(theme: theme), // Index 2 (or 1 if guest)
-          Profile(theme: theme), // Index 3 (or 2 if guest)
+          const Home(), // index 0
+          if (isLoggedIn) Appointments(theme: theme), // index 1 si logged
+          Store(theme: theme), // décale si pas logged
+          Profile(theme: theme),
         ];
+
+        // 3) SÉCURISER L’INDEX quand la longueur change (login/logout)
+        final int safeIndex =
+            (currentPageIndex).clamp(0, destinations.length - 1) as int;
 
         return Scaffold(
           appBar: AppBar(
@@ -124,10 +127,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: currentPageIndex,
+            selectedIndex: safeIndex,          // ✅ utilise l’index sécurisé
             destinations: destinations,
           ),
-          body: pages[currentPageIndex],
+          body: pages[safeIndex],               // ✅ idem ici
         );
       },
     );
@@ -151,7 +154,12 @@ class _NavigationState extends State<Navigation> {
 
                 try {
                   await AuthService().logout();
-                  if (context.mounted) {
+
+                  // ✅ IMPORTANT : remets l’onglet sur "Home" (index 0)
+                  if (mounted) {
+                    setState(() {
+                      currentPageIndex = 0;
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Logged out successfully'),
@@ -160,10 +168,10 @@ class _NavigationState extends State<Navigation> {
                     );
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
                   }
                 }
               },
