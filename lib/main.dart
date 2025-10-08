@@ -155,8 +155,13 @@ class _NavigationState extends State<Navigation> {
                 try {
                   await AuthService().logout();
 
+<<<<<<< HEAD
                   // ✅ IMPORTANT : remets l’onglet sur "Home" (index 0)
                   if (mounted) {
+=======
+                  // Reset the index to a valid value after logout
+                  if (context.mounted) {
+>>>>>>> origin/dev
                     setState(() {
                       currentPageIndex = 0;
                     });
