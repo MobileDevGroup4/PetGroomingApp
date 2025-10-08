@@ -16,17 +16,17 @@ class PackageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.hardEdge, // coupe tout micro-débordement
       elevation: 1.5,
       child: InkWell(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min, // occupe juste ce qu'il faut
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ligne supérieure : badge + durée à droite
+              // Ligne supérieure : badge + durée
               Row(
                 children: [
                   _BadgeTag(text: pack.badge),
@@ -42,10 +42,7 @@ class PackageCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '${pack.durationMinutes} min',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
+                            style: const TextStyle(fontSize: 12, color: Colors.black87),
                           ),
                         ],
                       ),
@@ -53,43 +50,44 @@ class PackageCard extends StatelessWidget {
                   ),
                 ],
               ),
+
               const SizedBox(height: 12),
 
-              // Nom
+              // Titre
               Center(
                 child: Text(
                   pack.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
                   textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(height: 12),
 
-              // Description
+              const SizedBox(height: 8),
+
+              // Description (compressible)
               Text(
                 pack.shortDescription,
+                softWrap: true,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2, // ajuste 1–3 selon la place
                 style: const TextStyle(color: Colors.black54),
               ),
+
               const SizedBox(height: 6),
 
-              // Highlights (si fournis)
+              // Highlights (optionnel + compressible)
               if (highlightsText != null && highlightsText!.isNotEmpty) ...[
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.add_circle_outline, size: 16),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         highlightsText!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black87,
-                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Colors.black87),
                       ),
                     ),
                   ],
@@ -100,10 +98,7 @@ class PackageCard extends StatelessWidget {
               // Prix
               Text(
                 pack.priceLabel,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -113,7 +108,7 @@ class PackageCard extends StatelessWidget {
   }
 }
 
-// Petit "tag" discret pour le badge
+// Petit "tag" de badge
 class _BadgeTag extends StatelessWidget {
   final String text;
   const _BadgeTag({required this.text});

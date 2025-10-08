@@ -10,10 +10,13 @@ import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const App());
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await FirebaseAuth.instance.signInAnonymously(); // <<< important
+  runApp(App());
 }
 
 class App extends StatelessWidget {

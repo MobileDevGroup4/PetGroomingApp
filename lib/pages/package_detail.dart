@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/package.dart';
 import '../widgets/service_item.dart';
-import '../data/packages.dart';
+
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
@@ -9,13 +9,7 @@ class PackageDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final silver = packages.firstWhere((p) => p.id == 'silver');
-    final added = pack.id == 'silver'
-        ? <String>[]
-        : pack.services
-            .where((s) => !silver.services.map((e) => e.toLowerCase()).contains(s.toLowerCase()))
-            .toList();
-
+    final added = pack.services;
     return Scaffold(
       appBar: AppBar(title: Text(pack.name)),
       body: SingleChildScrollView(
