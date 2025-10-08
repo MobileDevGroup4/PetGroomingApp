@@ -148,7 +148,12 @@ class _NavigationState extends State<Navigation> {
 
                 try {
                   await AuthService().logout();
+
+                  // Reset the index to a valid value after logout
                   if (context.mounted) {
+                    setState(() {
+                      currentPageIndex = 0;
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Logged out successfully'),
