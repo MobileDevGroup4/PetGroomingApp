@@ -4,22 +4,10 @@ import '../widgets/package_card.dart';
 import 'package_detail.dart';
 import '../repositories/packages_repository.dart';
 import '../models/package.dart';
+import '../utils/package_diff.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
-
-  String _highlightsFor(Package pack, List<Package> all) {
-    final silver = all.firstWhere((p) => p.id == 'silver', orElse: () => all.first);
-    final gold   = all.firstWhere((p) => p.id == 'gold', orElse: () => silver);
-
-    if (pack.id == 'silver') return '';
-    final baseline = pack.id == 'gold' ? silver : (pack.id == 'platinum' ? gold : silver);
-    final base = baseline.services.map((e) => e.toLowerCase()).toSet();
-    final added = pack.services.where((s) => !base.contains(s.toLowerCase())).toList();
-    if (added.isEmpty) return '';
-    final preview = added.length > 2 ? '${added.take(2).join(', ')}…' : added.join(', ');
-    return 'Adds: $preview';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +26,7 @@ class Home extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(
-              child: Text('Firestore error:\n${snap.error}', textAlign: TextAlign.center),
-            );
+            return Center(child: Text('Firestore error:\n${snap.error}', textAlign: TextAlign.center));
           }
           final items = snap.data ?? [];
           if (items.isEmpty) {
@@ -49,15 +35,10 @@ class Home extends StatelessWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              // Responsive columns
               int crossAxis = 2;
-              if (constraints.maxWidth >= 1000) {
-                crossAxis = 4;
-              } else if (constraints.maxWidth >= 700) {
-                crossAxis = 3;
-              } // sinon 2 (téléphone)
+              if (constraints.maxWidth >= 1000) crossAxis = 4;
+              else if (constraints.maxWidth >= 700) crossAxis = 3;
 
-              // Ratio carte (ajuste un peu selon ton contenu)
               final double ratio = constraints.maxWidth < 380 ? 0.74 : 0.78;
 
               return CustomScrollView(
@@ -88,10 +69,15 @@ class Home extends StatelessWidget {
                           final pack = items[i];
                           return PackageCard(
                             pack: pack,
-                            highlightsText: _highlightsFor(pack, items),
+                            highlightsText: highlightsLabel(pack, items),
                             onTap: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => PackageDetailPage(pack: pack)),
+                                MaterialPageRoute(
+                                  builder: (_) => PackageDetailPage(
+                                    pack: pack,
+                                    allPackages: items, // <<< important
+                                  ),
+                                ),
                               );
                             },
                           );
@@ -107,24 +93,17 @@ class Home extends StatelessWidget {
           );
         },
       ),
-
-      // Fab de test (optionnel) : tu peux supprimer si inutile
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           try {
-            final doc = await FirebaseFirestore.instance
-                .collection('packages')
-                .doc('silver')
-                .get();
+            final doc = await FirebaseFirestore.instance.collection('packages').doc('silver').get();
             // ignore: use_build_context_synchronously
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('silver exists: ${doc.exists}\n${doc.data()}')),
             );
           } catch (e) {
             // ignore: use_build_context_synchronously
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Firestore error: $e')),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Firestore error: $e')));
           }
         },
         child: const Icon(Icons.search),
