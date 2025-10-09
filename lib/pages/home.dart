@@ -36,8 +36,8 @@ class Home extends StatelessWidget {
           return LayoutBuilder(
             builder: (context, constraints) {
               int crossAxis = 2;
-              if (constraints.maxWidth >= 1000) crossAxis = 4;
-              else if (constraints.maxWidth >= 700) crossAxis = 3;
+              if (constraints.maxWidth >= 1000) {crossAxis = 4;}
+              else if (constraints.maxWidth >= 700) {crossAxis = 3;}
 
               final double ratio = constraints.maxWidth < 380 ? 0.74 : 0.78;
 

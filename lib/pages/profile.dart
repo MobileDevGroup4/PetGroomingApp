@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/widgets/pet_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../widgets/pet_section.dart';
+import '../screens/booking_screen.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
@@ -52,6 +54,57 @@ class Profile extends StatelessWidget {
               );
             } else {
               // User IS logged in - show profile info + logout
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.person, size: 80, color: Colors.green),
+                    const SizedBox(height: 16),
+                    Text('Welcome!', style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    Text(
+                      user.email ?? 'No email',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookingScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.calendar_today),
+                      label: const Text('Book a service'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    ElevatedButton.icon(
+                      onPressed: () => _showLogoutDialog(context),
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Logout'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        backgroundColor: Colors.grey[300],
+                        foregroundColor: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
               return Column(
                 children: [
                   const SizedBox(height: 16),
