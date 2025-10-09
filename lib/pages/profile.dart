@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
+import '../screens/booking_screen.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
@@ -61,7 +63,30 @@ class Profile extends StatelessWidget {
                       user.email ?? 'No email',
                       style: theme.textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 24),
+
+                    const SizedBox(height: 32),
+
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookingScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.calendar_today),
+                      label: const Text('Book a service'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
                     ElevatedButton.icon(
                       onPressed: () => _showLogoutDialog(context),
                       icon: const Icon(Icons.logout),
@@ -71,6 +96,8 @@ class Profile extends StatelessWidget {
                           horizontal: 24,
                           vertical: 12,
                         ),
+                        backgroundColor: Colors.grey[300],
+                        foregroundColor: Colors.black87,
                       ),
                     ),
                   ],
