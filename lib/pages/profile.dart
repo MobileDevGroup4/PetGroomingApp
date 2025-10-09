@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/widgets/pet_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/auth_service.dart';
@@ -17,7 +16,6 @@ class Profile extends StatelessWidget {
     return Card(
       shadowColor: Colors.transparent,
       margin: const EdgeInsets.all(8.0),
-      //child: SizedBox.expand(child: Center(child: PetList())),
       child: SizedBox.expand(
         child: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
@@ -25,7 +23,7 @@ class Profile extends StatelessWidget {
             final user = snapshot.data;
 
             if (user == null) {
-              // User is NOT logged in - show Login button
+              // NOT logged in
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -53,13 +51,14 @@ class Profile extends StatelessWidget {
                 ),
               );
             } else {
-              // User IS logged in - show profile info + logout
-              return Center(
+              // Logged in
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.person, size: 80, color: Colors.green),
                     const SizedBox(height: 16),
+                    const Icon(Icons.person, size: 80, color: Colors.green),
+                    const SizedBox(height: 8),
                     Text('Welcome!', style: theme.textTheme.titleLarge),
                     const SizedBox(height: 8),
                     Text(
@@ -67,7 +66,7 @@ class Profile extends StatelessWidget {
                       style: theme.textTheme.bodyMedium,
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     ElevatedButton.icon(
                       onPressed: () {
@@ -103,35 +102,13 @@ class Profile extends StatelessWidget {
                         foregroundColor: Colors.black87,
                       ),
                     ),
+
+                    const SizedBox(height: 16),
+
+                    // Pets list expands to fill remaining space
+                    const Expanded(child: PetSection()),
                   ],
                 ),
-              return Column(
-                children: [
-                  const SizedBox(height: 16),
-                  const Icon(Icons.person, size: 80, color: Colors.green),
-                  const SizedBox(height: 8),
-                  Text('Welcome!', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 8),
-                  Text(
-                    user.email ?? 'No email',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(child: PetSection()), // 👈 pets list here
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _showLogoutDialog(context),
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Logout'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
               );
             }
           },
