@@ -87,4 +87,33 @@ class BookingService {
       throw Exception('Failed to create booking.');
     }
   }
+
+  Stream<List<Booking>> getUpcomingBookingsForCurrentUser() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      // If no user is logged in, return an empty stream
+      return Stream.value([]);
+    }
+    try {
+      return _firestore
+          .collection('bookings')
+          // 1. Filter bookings by the current user's ID
+          .where('userId', isEqualTo: user.uid)
+          // 2. Only get bookings that start from now onwards
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.now())
+          // 3. Order them by start time so the soonest is first
+          .orderBy('startTime')
+          .snapshots() // This returns a Stream<QuerySnapshot>
+          .map((snapshot) {
+            // This converts the stream of snapshots into a stream of lists of Bookings
+            return snapshot.docs
+                .map((doc) => Booking.fromFirestore(doc))
+                .toList();
+          });
+    } catch (e) {
+      logger.e('Error fetching user bookings: $e');
+      // On error, return a stream with an empty list
+      return Stream.value([]);
+    }
+  }
 }
