@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
+import '../models/booking.dart';
 import '../models/service.dart';
 
 class BookingService {
@@ -25,6 +26,28 @@ class BookingService {
       return services;
     } catch (e) {
       logger.e('Error fetching services', error: e);
+      return [];
+    }
+  }
+
+  Future<List<Booking>> getExistingBookingsForDay(DateTime date) async {
+    try {
+      logger.d('Fetching bookings from Firestore');
+      // Set start o f the selected day (at 00:00:00)
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      // Set end of the selected day (at 23:59:59)
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final snapshot = await _firestore
+          .collection('bookings')
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .get();
+
+      logger.d('Successfully fetched bookings');
+      return snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+    } catch (e) {
+      logger.e('Error fetching bookings: $e');
       return [];
     }
   }
