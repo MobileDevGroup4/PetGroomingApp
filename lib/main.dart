@@ -5,6 +5,20 @@ import 'package:flutter_app/pages/profile.dart';
 import 'package:flutter_app/pages/store.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'package:flutter_app/models/pet.dart';
+import 'package:flutter_app/services/pet_service.dart';
+
+/*
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // for testing
+  await FirebaseAuth.instance.signInAnonymously();
+  debugPrint('uid = ${FirebaseAuth.instance.currentUser?.uid}');
+*/
 
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
@@ -12,9 +26,7 @@ import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // If your Firestore rules require auth to read/write, uncomment this:
   // await FirebaseAuth.instance.signInAnonymously();
@@ -27,18 +39,37 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    /*
+    return StreamProvider<List<Pet>>(
+      create: (_) => PetService().pets,
+      initialData: const [],
+      child: MaterialApp(
+        // <-- remove const
+        debugShowCheckedModeBanner: false,
+        home: const Navigation(),
+*/
     return MaterialApp(
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // Show loading while checking auth state
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          // Guests can browse too; Navigation adapts to auth state
-          return const Navigation();
+          final user = snap.data;
+
+          if (user == null) {
+            // guest UI, no pets provider
+            return const Navigation();
+          }
+
+          // user logged in → provide their pets
+          return StreamProvider<List<Pet>>.value(
+            value: PetService(user.uid).pets,
+            initialData: const [],
+            child: const Navigation(),
+          );
         },
       ),
     );
@@ -85,7 +116,7 @@ class _NavigationState extends State<Navigation> {
 
         // Pages in the same order as destinations
         final List<Widget> pages = [
-          const Home(),                   // index 0
+          const Home(), // index 0
           if (isLoggedIn) Appointments(theme: theme),
           Store(theme: theme),
           Profile(theme: theme),
@@ -124,10 +155,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: safeIndex,      // use clamped index
+            selectedIndex: safeIndex, // use clamped index
             destinations: destinations,
           ),
-          body: pages[safeIndex],          // use clamped index
+          body: pages[safeIndex], // use clamped index
         );
       },
     );
@@ -166,9 +197,9 @@ class _NavigationState extends State<Navigation> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
                   }
                 }
               },
