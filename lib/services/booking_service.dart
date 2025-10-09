@@ -1,19 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
+
 import '../models/booking.dart';
 import '../models/service.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final logger = Logger(
-      printer: PrettyPrinter(
-        methodCount: 2,
-        dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-      ),
+    printer: PrettyPrinter(
+      methodCount: 2,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    ),
   );
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   // Fetch all services from the 'services' collection.
   Future<List<Service>> getServices() async {
-    try{
+    try {
       logger.d('Fetching services from Firestore');
       QuerySnapshot snapshot = await _firestore.collection('services').get();
 
@@ -40,7 +44,10 @@ class BookingService {
 
       final snapshot = await _firestore
           .collection('bookings')
-          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where(
+            'startTime',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+          )
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
           .get();
 
@@ -49,6 +56,35 @@ class BookingService {
     } catch (e) {
       logger.e('Error fetching bookings: $e');
       return [];
+    }
+  }
+
+  Future<void> createBooking({
+    required Service service,
+    required DateTime startTime,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('User must be logged in to create a booking.');
+    }
+
+    try {
+      final endTime = startTime.add(Duration(minutes: service.duration));
+
+      await _firestore.collection('bookings').add({
+        'userId': user.uid,
+        'serviceId': service.id,
+        'serviceName': service.name,
+        'petId': 'p12345', // placeholder for the pet's id (TODO: add this)
+        'startTime': Timestamp.fromDate(startTime),
+        'endTime': Timestamp.fromDate(endTime),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      logger.d('Creating booking in Firestore');
+    } catch (e) {
+      logger.e('Error creating booking: $e');
+      throw Exception('Failed to create booking.');
     }
   }
 }

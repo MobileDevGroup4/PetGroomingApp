@@ -150,8 +150,49 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                   ),
                   onPressed: (_selectedDay == null || _selectedTimeSlot == null)
                       ? null
-                      : () {
-                          // TODO: Implement booking creation logic
+                      : () async {
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
+                          final navigator = Navigator.of(context);
+                          try {
+                            // 1. Prepare the data
+                            final selectedStartTime = _parseSlot(
+                              _selectedDay!,
+                              _selectedTimeSlot!,
+                            );
+
+                            // 2. Call the service to create the booking
+                            await _bookingService.createBooking(
+                              service: widget.service,
+                              startTime: selectedStartTime,
+                              // TODO: add petId
+                            );
+
+                            // 3. Show a success message and navigate back
+                            if (mounted) {
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Booking confirmed successfully!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              // Pop all routes until we get back to the first screen
+                              navigator.popUntil((route) => route.isFirst);
+                            }
+                          } catch (e) {
+                            // 4. Show an error message if something goes wrong
+                            if (mounted) {
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(e.toString()),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         },
                   child: const Text('Proceed to Confirmation'),
                 ),
