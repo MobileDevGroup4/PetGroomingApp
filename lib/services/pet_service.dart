@@ -11,19 +11,45 @@ class PetService {
       .doc(uid)
       .collection('pets');
 
-  Future<void> addPet(String name, String breed, int age) async {
-    await _petsCol.add({
+  Future<String> addPet(
+    String name,
+    String breed,
+    int age,
+    String size,
+    double? weight,
+    String colour,
+    String preferences,
+  ) async {
+    final ref = await _petsCol.add({
       'name': name,
       'breed': breed,
       'age': age,
-      'createdAt': FieldValue.serverTimestamp(),
+      'size': size,
+      'weight': weight,
+      'colour': colour,
+      'preferences': preferences,
+      'createdAt': FieldValue.serverTimestamp(), // <—
     });
+    return ref.id;
   }
 
-  Future<void> updatePet(String id, {String? name, String? breed, int? age}) {
+  Future<void> updatePet(
+    String id, {
+    String? name,
+    String? breed,
+    int? age,
+    String? size,
+    double? weight,
+    String? colour,
+    String? preferences,
+  }) {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (breed != null) data['breed'] = breed;
+    if (size != null) data['size'] = size;
+    if (weight != null) data['weight'] = weight;
+    if (colour != null) data['colour'] = colour;
+    if (preferences != null) data['preferences'] = preferences;
     if (age != null) data['age'] = age;
     return _petsCol.doc(id).update(data);
   }
@@ -35,12 +61,20 @@ class PetService {
       final data = doc.data();
       final ageRaw = data['age'];
       final age = (ageRaw is int) ? ageRaw : int.tryParse('${ageRaw}') ?? 0;
+      final weightRaw = data['weight'];
+      final weight = (weightRaw is double)
+          ? weightRaw
+          : double.tryParse('${weightRaw}') ?? 0;
 
       return Pet(
-        // add id in your model if you want to edit/delete later
+        id: doc.id,
         name: (data['name'] as String?) ?? '',
         breed: (data['breed'] as String?) ?? '',
+        size: (data['size'] as String?) ?? '',
+        colour: (data['colour'] as String?) ?? '',
+        preferences: (data['preferences'] as String?) ?? '',
         age: age,
+        weight: weight,
       );
     }).toList();
   }

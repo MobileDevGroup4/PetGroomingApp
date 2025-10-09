@@ -23,7 +23,7 @@ class Profile extends StatelessWidget {
             final user = snapshot.data;
 
             if (user == null) {
-              // User is NOT logged in - show Login button
+              // NOT logged in
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
