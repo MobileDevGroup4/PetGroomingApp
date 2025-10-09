@@ -17,15 +17,17 @@ class Service {
 
   // A factory constructor to create a Service from a Firestore document.
   factory Service.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    // Cast the data to a Map, or an empty map if it's null.
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+
     return Service(
       id: doc.id,
-      name: data['name'] ?? '',
-      description: data['description'],
+      name: data['s-name'] ?? 'No Name',
+      description: data['s-description'] as String? ?? 'No Description',
       // Ensure duration is treated as an integer.
-      duration: (data['duration'] as num?)?.toInt() ?? 0,
+      duration: (data['s-duration'] as num?)?.toInt() ?? 0,
       // Ensure duration is treated as a double.
-      price: (data['price'] as num?) ?.toDouble() ?? 0.00,
+      price: (data['s-price'] as num?) ?.toDouble() ?? 0.0,
     );
 
   }

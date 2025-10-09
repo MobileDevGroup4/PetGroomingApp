@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'date_time_screen.dart';
 
 import '../models/service.dart';
 import '../services/booking_service.dart';
@@ -35,17 +36,19 @@ class _BookingScreenState extends State<BookingScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           // 2. Show an error messgage if something went wrong
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          
+
           // 3. Hansle the case where no services are found
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No services available at the mometn.'));
+            return const Center(
+              child: Text('No services available at the mometn.'),
+            );
           }
-          
+
           // 4. If data is available, display it in a list
           List<Service> services = snapshot.data!;
           return ListView.builder(
@@ -53,25 +56,33 @@ class _BookingScreenState extends State<BookingScreen> {
             itemBuilder: (context, index) {
               final service = services[index];
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16 , vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(service.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${service.description}\nDuration: ${service.duration} minutes'),
+                  title: Text(
+                    service.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '${service.description}\nDuration: ${service.duration} minutes',
+                  ),
                   trailing: Text(
-                      '${service.price.toStringAsFixed(2)} CHF',
+                    '${service.price.toStringAsFixed(2)} CHF',
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
-              ),
+                  ),
                   onTap: () {
-                  // TODO: Navigate to next step of the booking process
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Selected ${service.name}')),
+                    // Navigate to the date and time selection screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DateTimeScreen(service: service),
+                      ),
                     );
                   },
-              ),
+                ),
               );
             },
           );
