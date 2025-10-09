@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/pages/pet/pet_list.dart';
+import 'package:flutter_app/widgets/pet_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
+import '../widgets/pet_section.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
@@ -51,32 +52,33 @@ class Profile extends StatelessWidget {
               );
             } else {
               // User IS logged in - show profile info + logout
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.person, size: 80, color: Colors.green),
-                    const SizedBox(height: 16),
-                    Text('Welcome!', style: theme.textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    Text(
-                      user.email ?? 'No email',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () => _showLogoutDialog(context),
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
+              return Column(
+                children: [
+                  const SizedBox(height: 16),
+                  const Icon(Icons.person, size: 80, color: Colors.green),
+                  const SizedBox(height: 8),
+                  Text('Welcome!', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Text(
+                    user.email ?? 'No email',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(child: PetSection()), // 👈 pets list here
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _showLogoutDialog(context),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               );
             }
           },

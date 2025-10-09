@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_app/models/pet.dart';
-import 'package:flutter_app/pages/pet/pet_view.dart';
+import 'package:flutter_app/screens/pets/pet_view.dart';
 
 class PetTile extends StatelessWidget {
   final Pet pet;

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/models/pet.dart';
-import 'package:flutter_app/pages/pet/pet_tile.dart';
-import 'package:flutter_app/pages/pet/add_pet_page.dart';
 import 'package:provider/provider.dart';
+
+import 'package:flutter_app/models/pet.dart';
+import 'package:flutter_app/widgets/pet_tile.dart';
+import 'package:flutter_app/screens/pets/add_pet_page.dart';
 
 class PetList extends StatelessWidget {
   const PetList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final pets = Provider.of<List<Pet>>(context);
+    final pets = context.watch<List<Pet>>();
 
     return Scaffold(
       appBar: AppBar(title: const Text("My Pets")),
@@ -23,7 +24,7 @@ class PetList extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AddPetPage()),
+            MaterialPageRoute(builder: (_) => const AddPetPage()),
           );
         },
         child: const Icon(Icons.add),

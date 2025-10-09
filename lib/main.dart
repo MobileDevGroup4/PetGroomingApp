@@ -40,7 +40,6 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     /*
-<<<<<<< HEAD
     return StreamProvider<List<Pet>>(
       create: (_) => PetService().pets,
       initialData: const [],
@@ -48,20 +47,29 @@ class App extends StatelessWidget {
         // <-- remove const
         debugShowCheckedModeBanner: false,
         home: const Navigation(),
-=======
 */
     return MaterialApp(
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // Show loading while checking auth state
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          // Guests can browse too; Navigation adapts to auth state
-          return const Navigation();
+          final user = snap.data;
+
+          if (user == null) {
+            // guest UI, no pets provider
+            return const Navigation();
+          }
+
+          // user logged in → provide their pets
+          return StreamProvider<List<Pet>>.value(
+            value: PetService(user.uid).pets,
+            initialData: const [],
+            child: const Navigation(),
+          );
         },
       ),
     );
