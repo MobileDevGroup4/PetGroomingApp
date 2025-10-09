@@ -12,13 +12,7 @@ import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // If your Firestore rules require auth to read/write, uncomment this:
-  // await FirebaseAuth.instance.signInAnonymously();
-
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const App());
 }
 
@@ -37,7 +31,13 @@ class App extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          // Guests can browse too; Navigation adapts to auth state
+
+          // If user is logged in, show Navigation
+          if (snapshot.hasData) {
+            return const Navigation();
+          }
+
+          // If user is NOT logged in, show Navigation (guests can browse)
           return const Navigation();
         },
       ),
@@ -65,13 +65,13 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Tabs depend on login (Appointments only when logged in)
+        // Different navigation items based on login status
         final List<NavigationDestination> destinations = [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-          if (isLoggedIn)
+          if (isLoggedIn) // Only show Appointments if logged in
             const NavigationDestination(
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
@@ -83,17 +83,14 @@ class _NavigationState extends State<Navigation> {
           ),
         ];
 
-        // Pages in the same order as destinations
+        // Different pages based on login status
         final List<Widget> pages = [
-          const Home(),                   // index 0
-          if (isLoggedIn) Appointments(theme: theme),
-          Store(theme: theme),
-          Profile(theme: theme),
+          const Home(), // Index 0
+          if (isLoggedIn)
+            Appointments(theme: theme), // Index 1 (only if logged in)
+          Store(theme: theme), // Index 2 (or 1 if guest)
+          Profile(theme: theme), // Index 3 (or 2 if guest)
         ];
-
-        // ✅ Clamp index to avoid "selectedIndex out of range" after login/logout
-        final int safeIndex =
-            (currentPageIndex).clamp(0, destinations.length - 1);
 
         return Scaffold(
           appBar: AppBar(
@@ -124,10 +121,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: safeIndex,      // use clamped index
+            selectedIndex: currentPageIndex,
             destinations: destinations,
           ),
-          body: pages[safeIndex],          // use clamped index
+          body: pages[currentPageIndex],
         );
       },
     );
@@ -147,18 +144,17 @@ class _NavigationState extends State<Navigation> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.of(context).pop();
 
                 try {
                   await AuthService().logout();
 
-                  // ✅ Reset tab to Home after logout to avoid invalid index
-                  if (mounted) {
+                  // Reset the index to a valid value after logout
+                  if (context.mounted) {
                     setState(() {
                       currentPageIndex = 0;
                     });
-                    scaffoldMessenger.showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Logged out successfully'),
                         backgroundColor: Colors.orange,
@@ -166,10 +162,10 @@ class _NavigationState extends State<Navigation> {
                     );
                   }
                 } catch (e) {
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
                   }
                 }
               },

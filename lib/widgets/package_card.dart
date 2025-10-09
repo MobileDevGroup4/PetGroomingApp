@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/package.dart';
 
-class PackageCard extends StatefulWidget {
+class PackageCard extends StatelessWidget {
   final Package pack;
   final VoidCallback? onTap;
   final String? highlightsText;
@@ -14,153 +14,98 @@ class PackageCard extends StatefulWidget {
   });
 
   @override
-  State<PackageCard> createState() => _PackageCardState();
-}
-
-class _PackageCardState extends State<PackageCard> {
-  double _scale = 1.0;
-
-  @override
   Widget build(BuildContext context) {
-    final p = widget.pack;
-    final theme = Theme.of(context);
-
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 120),
-      scale: _scale,
-      child: Card(
-        clipBehavior: Clip.hardEdge,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        child: InkWell(
-          onTap: () {
-            setState(() => _scale = 0.98);
-            Future.delayed(const Duration(milliseconds: 120), () {
-              setState(() => _scale = 1.0);
-              widget.onTap?.call();
-            });
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.surface.withOpacity(0.98),
-                  theme.colorScheme.surface.withOpacity(0.92),
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 1.5,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Ligne supérieure : badge + durée à droite
+              Row(
+                children: [
+                  _BadgeTag(text: pack.badge),
+                  const Spacer(),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.schedule, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${pack.durationMinutes} min',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header: badge + duration (fix overflow)
-Row(
-  children: [
-    _Badge(text: p.badge),
+              const SizedBox(height: 12),
 
-    const SizedBox(width: 8),
-
-    
-    Expanded(
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: Wrap( // Wrap évite le "RIGHT OVERFLOWED"
-          spacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const Icon(Icons.schedule, size: 16),
-            Text(
-              '${p.durationMinutes} min',
-              overflow: TextOverflow.fade, // sécurité
-              softWrap: false,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.black87,
+              // Nom
+              Center(
+                child: Text(
+                  pack.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  ],
-),
-                const SizedBox(height: 12),
-
-                // Title
-                Text(
-                  p.name,
-                  textAlign: TextAlign.left,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  textAlign: TextAlign.center,
                 ),
+              ),
+              const SizedBox(height: 12),
 
-                const SizedBox(height: 8),
+              // Description
+              Text(
+                pack.shortDescription,
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 6),
 
-                // Short description
-                Text(
-                  p.shortDescription,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.black54,
-                    height: 1.25,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Highlights (optional)
-                if (widget.highlightsText != null &&
-                    widget.highlightsText!.isNotEmpty)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.add_circle_outline, size: 16),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          widget.highlightsText!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: Colors.black87,
-                          ),
+              // Highlights (si fournis)
+              if (highlightsText != null && highlightsText!.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.add_circle_outline, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        highlightsText!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
                         ),
-                      ),
-                    ],
-                  ),
-
-                const Spacer(),
-
-                // Price pill
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC107).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(
-                        color: const Color(0xFFFFC107).withOpacity(0.6),
-                        width: 1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    child: Text(
-                      p.priceLabel,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
+                const SizedBox(height: 8),
               ],
-            ),
+
+              // Prix
+              Text(
+                pack.priceLabel,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -168,26 +113,23 @@ Row(
   }
 }
 
-class _Badge extends StatelessWidget {
+// Petit "tag" discret pour le badge
+class _BadgeTag extends StatelessWidget {
   final String text;
-  const _Badge({required this.text});
+  const _BadgeTag({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black12),
-        color: theme.colorScheme.surface.withOpacity(0.7),
+        border: Border.all(color: Colors.black26),
+        color: Colors.white.withValues(alpha: 0.6),
       ),
       child: Text(
         text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
-        ),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
       ),
     );
   }
