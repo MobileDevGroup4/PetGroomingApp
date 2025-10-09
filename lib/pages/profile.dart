@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/widgets/pet_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/auth_service.dart';
@@ -17,7 +16,6 @@ class Profile extends StatelessWidget {
     return Card(
       shadowColor: Colors.transparent,
       margin: const EdgeInsets.all(8.0),
-      //child: SizedBox.expand(child: Center(child: PetList())),
       child: SizedBox.expand(
         child: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
@@ -53,58 +51,7 @@ class Profile extends StatelessWidget {
                 ),
               );
             } else {
-              // User IS logged in - show profile info + logout
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.person, size: 80, color: Colors.green),
-                    const SizedBox(height: 16),
-                    Text('Welcome!', style: theme.textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    Text(
-                      user.email ?? 'No email',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const BookingScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.calendar_today),
-                      label: const Text('Book a service'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    ElevatedButton.icon(
-                      onPressed: () => _showLogoutDialog(context),
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        backgroundColor: Colors.grey[300],
-                        foregroundColor: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
+              // User IS logged in - show combined profile view
               return Column(
                 children: [
                   const SizedBox(height: 16),
@@ -116,9 +63,39 @@ class Profile extends StatelessWidget {
                     user.email ?? 'No email',
                     style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(child: PetSection()), // 👈 pets list here
+                  const SizedBox(height: 24),
+
+                  // "Book a service" button from the feature branch
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BookingScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.calendar_today),
+                    label: const Text('Book a service'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // "My Pets" section from the dev branch
+                  const Text(
+                    "My Pets",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
+                  Expanded(child: PetSection()),
+                  const SizedBox(height: 16),
+
+                  // Unified "Logout" button
                   ElevatedButton.icon(
                     onPressed: () => _showLogoutDialog(context),
                     icon: const Icon(Icons.logout),
@@ -128,6 +105,8 @@ class Profile extends StatelessWidget {
                         horizontal: 24,
                         vertical: 12,
                       ),
+                      backgroundColor: Colors.grey[300],
+                      foregroundColor: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -162,17 +141,18 @@ class Profile extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close dialog
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+
+                navigator.pop(); // Close dialog before async gap
 
                 try {
                   await AuthService().logout();
                   // Auth state will automatically update the UI
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error logging out: $e')),
-                    );
-                  }
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Error logging out: $e')),
+                  );
                 }
               },
               child: const Text('Logout'),
