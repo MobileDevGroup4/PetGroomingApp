@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/models/pet.dart';
-import 'package:flutter_app/services/pet_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_app/screens/pets/edit_pet_page.dart';
 
 class PetView extends StatefulWidget {
   final Pet pet;
@@ -13,91 +12,25 @@ class PetView extends StatefulWidget {
 
 class _PetViewState extends State<PetView> {
   late Pet _pet;
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _breedController = TextEditingController();
-  final _ageController = TextEditingController();
-
-  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
   @override
   void initState() {
     super.initState();
     _pet = widget.pet;
-    _nameController.text = _pet.name;
-    _breedController.text = _pet.breed;
-    _ageController.text = _pet.age.toString();
   }
 
-  Future<void> _updatePet() async {
-    if (_uid == null) return;
-    if (!_formKey.currentState!.validate()) return;
-
-    await PetService(_uid!).updatePet(
-      _pet.id,
-      name: _nameController.text,
-      breed: _breedController.text,
-      age: int.tryParse(_ageController.text),
-    );
-
-    setState(() {
-      _pet = Pet(
-        id: _pet.id,
-        name: _nameController.text,
-        breed: _breedController.text,
-        age: int.tryParse(_ageController.text) ?? _pet.age,
-      );
-    });
-
-    Navigator.pop(context); // close the dialog
-    ScaffoldMessenger.of(
+  Future<void> _openEdit() async {
+    final updated = await Navigator.push<Pet>(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Pet info updated')));
-  }
-
-  void _showEditDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Pet Info'),
-        content: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Enter a name' : null,
-                ),
-                TextFormField(
-                  controller: _breedController,
-                  decoration: const InputDecoration(labelText: 'Breed'),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Enter a breed' : null,
-                ),
-                TextFormField(
-                  controller: _ageController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Age'),
-                  validator: (val) =>
-                      val == null || val.isEmpty ? 'Enter age' : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(onPressed: _updatePet, child: const Text('Save')),
-        ],
-      ),
+      MaterialPageRoute(builder: (_) => EditPetPage(pet: _pet)),
     );
+
+    if (updated != null) {
+      setState(() => _pet = updated);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Pet updated')));
+    }
   }
 
   @override
@@ -106,7 +39,7 @@ class _PetViewState extends State<PetView> {
       appBar: AppBar(
         title: Text(_pet.name),
         actions: [
-          IconButton(icon: const Icon(Icons.edit), onPressed: _showEditDialog),
+          IconButton(icon: const Icon(Icons.edit), onPressed: _openEdit),
         ],
       ),
       body: Padding(
@@ -131,6 +64,18 @@ class _PetViewState extends State<PetView> {
             ),
             Text(
               "Age: ${_pet.age}",
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            Text(
+              "Age: ${_pet.size}",
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            Text(
+              "Colour: ${_pet.colour}",
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            Text(
+              "Preferences: ${_pet.preferences}",
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],

@@ -34,10 +34,12 @@ class PetTile extends StatelessWidget {
           title: Text(pet.name),
           subtitle: Text('Breed: ${pet.breed}, Age: ${pet.age}'),
           onTap: () => _navigateToPetView(context),
+          /*
           trailing: IconButton(
             icon: Icon(Icons.delete),
             onPressed: () => _deletePet(context),
           ),
+          */
         ),
       ),
     );
