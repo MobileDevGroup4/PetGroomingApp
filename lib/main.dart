@@ -12,17 +12,6 @@ import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
 
-/*
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // for testing
-  await FirebaseAuth.instance.signInAnonymously();
-  debugPrint('uid = ${FirebaseAuth.instance.currentUser?.uid}');
-*/
-
-
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -38,15 +27,6 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /*
-    return StreamProvider<List<Pet>>(
-      create: (_) => PetService().pets,
-      initialData: const [],
-      child: MaterialApp(
-        // <-- remove const
-        debugShowCheckedModeBanner: false,
-        home: const Navigation(),
-*/
     return MaterialApp(
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
@@ -121,12 +101,16 @@ class _NavigationState extends State<Navigation> {
           Profile(theme: theme),
         ];
 
-        // ✅ Clamp index to avoid "selectedIndex out of range" after login/logout
+        // Clamp index to avoid "selectedIndex out of range" after login/logout
         final int safeIndex = (currentPageIndex).clamp(
           0,
           destinations.length - 1,
         );
-
+        /*
+        // Clamp index to avoid "selectedIndex out of range" after login/logout
+        final int safeIndex =
+            (currentPageIndex).clamp(0, destinations.length - 1) as int;
+*/
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
