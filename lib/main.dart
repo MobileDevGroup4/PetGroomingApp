@@ -12,7 +12,13 @@ import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // If your Firestore rules require auth to read/write, uncomment this:
+  // await FirebaseAuth.instance.signInAnonymously();
+
   runApp(const App());
 }
 
@@ -31,13 +37,7 @@ class App extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-
-          // If user is logged in, show Navigation
-          if (snapshot.hasData) {
-            return const Navigation();
-          }
-
-          // If user is NOT logged in, show Navigation (guests can browse)
+          // Guests can browse too; Navigation adapts to auth state
           return const Navigation();
         },
       ),
@@ -65,13 +65,13 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Different navigation items based on login status
+        // Tabs depend on login (Appointments only when logged in)
         final List<NavigationDestination> destinations = [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
-          if (isLoggedIn) // Only show Appointments if logged in
+          if (isLoggedIn)
             const NavigationDestination(
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
@@ -83,7 +83,7 @@ class _NavigationState extends State<Navigation> {
           ),
         ];
 
-        // Different pages based on login status
+        // Pages in the same order as destinations
         final List<Widget> pages = [
           const Home(), // Index 0
           if (isLoggedIn)
@@ -91,6 +91,10 @@ class _NavigationState extends State<Navigation> {
           Store(theme: theme), // Index 2 (or 1 if guest)
           const ProfilePage(), // Index 3 (or 2 if guest)
         ];
+
+        // ✅ Clamp index to avoid "selectedIndex out of range" after login/logout
+        final int safeIndex =
+            (currentPageIndex).clamp(0, destinations.length - 1) as int;
 
         return Scaffold(
           appBar: AppBar(
@@ -121,10 +125,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: currentPageIndex,
+            selectedIndex: safeIndex,      // use clamped index
             destinations: destinations,
           ),
-          body: pages[currentPageIndex],
+          body: pages[safeIndex],          // use clamped index
         );
       },
     );
@@ -148,7 +152,12 @@ class _NavigationState extends State<Navigation> {
 
                 try {
                   await AuthService().logout();
-                  if (context.mounted) {
+
+                  // ✅ Reset tab to Home after logout to avoid invalid index
+                  if (mounted) {
+                    setState(() {
+                      currentPageIndex = 0;
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Logged out successfully'),
@@ -157,10 +166,10 @@ class _NavigationState extends State<Navigation> {
                     );
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
                   }
                 }
               },
