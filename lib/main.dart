@@ -93,7 +93,7 @@ class _NavigationState extends State<Navigation> {
 
         // ✅ Clamp index to avoid "selectedIndex out of range" after login/logout
         final int safeIndex =
-            (currentPageIndex).clamp(0, destinations.length - 1) as int;
+            (currentPageIndex).clamp(0, destinations.length - 1);
 
         return Scaffold(
           appBar: AppBar(
@@ -147,6 +147,7 @@ class _NavigationState extends State<Navigation> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.of(context).pop();
 
                 try {
@@ -157,7 +158,7 @@ class _NavigationState extends State<Navigation> {
                     setState(() {
                       currentPageIndex = 0;
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       const SnackBar(
                         content: Text('Logged out successfully'),
                         backgroundColor: Colors.orange,
@@ -166,7 +167,7 @@ class _NavigationState extends State<Navigation> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(content: Text('Error: $e')),
                     );
                   }
