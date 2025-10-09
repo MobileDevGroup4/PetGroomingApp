@@ -28,6 +28,16 @@ class PetService {
     return _petsCol.doc(id).update(data);
   }
 
+  /*
+  Future<void> updatePet(String id, {String? name, String? breed, int? age}) {
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name;
+    if (breed != null) data['breed'] = breed;
+    if (age != null) data['age'] = age;
+    return _petsCol.doc(id).update(data);
+  }
+  */
+
   Future<void> deletePet(String id) => _petsCol.doc(id).delete();
 
   List<Pet> _fromSnapshot(QuerySnapshot<Map<String, dynamic>> snap) {
