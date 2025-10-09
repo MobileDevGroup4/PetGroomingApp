@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/screens/pets/pet_view.dart';
+import 'package:flutter_app/services/pet_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PetTile extends StatelessWidget {
   final Pet pet;
-  const PetTile({super.key, required this.pet});
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  PetTile({super.key, required this.pet});
 
   void _navigateToPetView(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => PetView(pet: pet)),
     );
+  }
+
+  void _deletePet(BuildContext context) async {
+    await PetService(uid!).deletePet(pet.id);
   }
 
   @override
@@ -28,6 +34,10 @@ class PetTile extends StatelessWidget {
           title: Text(pet.name),
           subtitle: Text('Breed: ${pet.breed}, Age: ${pet.age}'),
           onTap: () => _navigateToPetView(context),
+          trailing: IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => _deletePet(context),
+          ),
         ),
       ),
     );

@@ -14,7 +14,7 @@ class _AddPetPageState extends State<AddPetPage> {
 
   String _name = '';
   String _breed = '';
-  int? _age; // <- make it nullable int
+  int? _age;
   final List<int> _ageOptions = List.generate(32, (i) => i); // 0–31
 
   Future<void> _submit() async {

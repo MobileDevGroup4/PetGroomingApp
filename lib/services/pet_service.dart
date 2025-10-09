@@ -37,7 +37,7 @@ class PetService {
       final age = (ageRaw is int) ? ageRaw : int.tryParse('${ageRaw}') ?? 0;
 
       return Pet(
-        // add id in your model if you want to edit/delete later
+        id: doc.id,
         name: (data['name'] as String?) ?? '',
         breed: (data['breed'] as String?) ?? '',
         age: age,
