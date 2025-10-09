@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/pages/appointments.dart';
 import 'package:flutter_app/pages/home.dart';
-import 'package:flutter_app/pages/profile.dart';
+import 'package:flutter_app/pages/profilePage.dart';
 import 'package:flutter_app/pages/store.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -89,7 +89,7 @@ class _NavigationState extends State<Navigation> {
           if (isLoggedIn)
             Appointments(theme: theme), // Index 1 (only if logged in)
           Store(theme: theme), // Index 2 (or 1 if guest)
-          Profile(theme: theme), // Index 3 (or 2 if guest)
+          const ProfilePage(), // Index 3 (or 2 if guest)
         ];
 
         return Scaffold(

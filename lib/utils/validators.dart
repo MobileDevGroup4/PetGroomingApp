@@ -43,3 +43,15 @@ String? validatePassword(String? value) {
 
   return null;
 }
+
+String? requiredText(String? v, {String label = 'Field'}) {
+  if (v == null || v.trim().isEmpty) return '$label is required';
+  return null;
+}
+
+String? phone(String? v) {
+  if (v == null || v.trim().isEmpty) return 'Phone is required';
+  final onlyDigits = v.replaceAll(RegExp(r'[^0-9+]'), '');
+  if (onlyDigits.length < 8) return 'Enter a valid phone number';
+  return null;
+}
