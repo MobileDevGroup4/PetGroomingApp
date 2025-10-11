@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_app/constants/pet_options.dart';
 import 'package:flutter_app/services/pet_service.dart';
 
 class AddPetPage extends StatefulWidget {
@@ -20,16 +21,8 @@ class _AddPetPageState extends State<AddPetPage> {
   String? _size;
   double? _weight;
   int? _age;
-
-  final List<int> _ageOptions = List.generate(32, (i) => i);
-  final List<String> _sizeOptions = [
-    'Tiny',
-    'Small',
-    'Medium',
-    'Large',
-    'Huge',
-    'Gargantuan',
-  ];
+  final List<int> _ageOptions = PetOptions.ageYears;
+  final List<String> _sizeOptions = PetOptions.sizeLabels;
 
   InputDecoration _field(String label) => InputDecoration(labelText: label);
 
