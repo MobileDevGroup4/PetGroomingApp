@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
-import 'package:flutter_app/services/pet_service.dart';
+//import 'package:flutter_app/constants/pet_options.dart' as DropdownOptions;
+import 'package:flutter_app/constants/pet_options.dart';
 
 class EditPetPage extends StatefulWidget {
   final Pet pet;
@@ -15,30 +16,16 @@ class EditPetPage extends StatefulWidget {
 
 class _EditPetPageState extends State<EditPetPage> {
   final _formKey = GlobalKey<FormState>();
-
-  // Text controllers
   late final TextEditingController _nameCtrl;
   late final TextEditingController _breedCtrl;
   late final TextEditingController _weightCtrl;
   late final TextEditingController _colourCtrl;
   late final TextEditingController _preferencesCtrl;
-
-  // Dropdown state
-  late int? _selectedAge; // years
+  late int? _selectedAge;
   late String? _selectedSize;
-
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
-
-  // Options
-  final List<int> _ageOptions = List<int>.generate(31, (i) => i); // 0..30
-  final List<String> _sizeOptions = const [
-    'Tiny,',
-    'Small',
-    'Medium',
-    'Large',
-    'Huge',
-    'Gargantuan',
-  ];
+  final List<int> _ageOptions = PetOptions.ageYears;
+  final List<String> _sizeOptions = PetOptions.sizeLabels;
 
   @override
   void initState() {
