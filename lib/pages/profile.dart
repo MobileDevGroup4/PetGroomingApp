@@ -5,11 +5,17 @@ import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../widgets/pet_section.dart';
 import '../screens/booking_screen.dart';
+import '../screens/user/profile_edit.dart';
+import 'dart:typed_data';
+import '../services/storage_service.dart';
+
+final fsStorage = FirestoreStorageService();
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
 
   final ThemeData theme;
+
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +61,30 @@ class Profile extends StatelessWidget {
               return Column(
                 children: [
                   const SizedBox(height: 16),
-                  const Icon(Icons.person, size: 80, color: Colors.green),
+                  FutureBuilder<Uint8List?>(
+                  future: fsStorage.loadProfileImage(uid: user.uid),
+                  builder: (context, snap) {
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const CircleAvatar(radius: 48, child: CircularProgressIndicator(strokeWidth: 2));
+                    }
+                    if (snap.hasError) {
+                      debugPrint('avatar load error: ${snap.error}');
+                      return const CircleAvatar(radius: 48, child: Icon(Icons.person, size: 48, color: Colors.green));
+                    }
+
+                    final bytes = snap.data;
+                    debugPrint('avatar bytes length: ${bytes?.length}');
+                    final img = (bytes != null && bytes.isNotEmpty) ? MemoryImage(bytes) : null;
+
+                    return CircleAvatar(
+                      radius: 48,
+                      backgroundImage: img,
+                      child: img == null
+                          ? const Icon(Icons.person, size: 48, color: Colors.green)
+                          : null,
+                    );
+                  },
+                ),
                   const SizedBox(height: 8),
                   Text('Welcome!', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
@@ -77,6 +106,28 @@ class Profile extends StatelessWidget {
                     },
                     icon: const Icon(Icons.calendar_today),
                     label: const Text('Book a service'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+
+                  // "Edit your profile" button 
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditProfileScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit your profile'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
