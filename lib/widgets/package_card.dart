@@ -78,72 +78,71 @@ final bool canEdit = user != null;
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween, // keeps price at bottom
                     children: [
-                      // ===== Header: badge + duration + toggle =====
-                      Row(
-                        children: [
-                          _Badge(text: p.badge),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Wrap(
-                                spacing: 6,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  const Icon(Icons.schedule, size: 16),
-                                  Text(
-                                    '${p.durationMinutes} min',
-                                    overflow: TextOverflow.fade,
-                                    softWrap: false,
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  // Visibility toggle
-                                  
-                                  // Show a clickable toggle only if signed in; otherwise show a disabled icon
-                                  if (canEdit)
-                                    IconButton(
-                                      tooltip: p.isActive ? 'Disable package' : 'Enable package',
-                                      icon: Icon(p.isActive ? Icons.visibility : Icons.visibility_off, size: 18),
-                                      padding: EdgeInsets.zero,
-                                      visualDensity: VisualDensity.compact,
-                                      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-                                      onPressed: () async {
-                                        final newValue = !p.isActive;
-                                        try {
-                                          await _repo.setActive(p.id, newValue);
-                                          if (!mounted) return;
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text(newValue ? 'Package enabled' : 'Package disabled')),
-                                          );
-                                        } catch (e) {
-                                          if (!mounted) return;
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Error updating status: $e')),
-                                          );
-                                        }
-                                      },
-                                    )
-                                  else
-                                    Tooltip(
-                                      message: 'Sign in required',
-                                      child: Icon(
-                                        p.isActive ? Icons.visibility : Icons.visibility_off,
-                                        size: 18,
-                                        color: Colors.black26, // disabled look
-                                      ),
-                                    ),
+                      //  Header: badge + duration + toggle 
+                     
+// ===== Header: badge + duration + (eye only when signed in) =====
+Row(
+  children: [
+    _Badge(text: p.badge),
+    const SizedBox(width: 8),
+    Expanded(
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Wrap(
+          spacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Icon(Icons.schedule, size: 16),
+            Text(
+              '${p.durationMinutes} min',
+              overflow: TextOverflow.fade,
+              softWrap: false,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Colors.black87,
+                  ),
+            ),
+            // 👇 Eye only if signed in
+            StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  // signed out -> hide completely
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  tooltip: p.isActive ? 'Disable package' : 'Enable package',
+                  icon: Icon(
+                    p.isActive ? Icons.visibility : Icons.visibility_off,
+                    size: 18,
+                  ),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                  onPressed: () async {
+                    final newValue = !p.isActive;
+                    try {
+                      await _repo.setActive(p.id, newValue);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(newValue ? 'Package enabled' : 'Package disabled')),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error updating status: $e')),
+                      );
+                    }
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  ],
+),
 
-
-
-
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
 
                       SizedBox(height: compact ? 8 : 12),
 
