@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/package.dart';
 import '../utils/package_diff.dart';
+import '../repositories/packages_repository.dart';
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
-  final List<Package> allPackages; 
+  final List<Package> allPackages;
 
   const PackageDetailPage({
     super.key,
@@ -15,13 +18,21 @@ class PackageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = addedServicesForTier(pack, allPackages); 
+    final added = addedServicesForTier(pack, allPackages);
+    final isSignedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
+      floatingActionButton: isSignedIn
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit'),
+              onPressed: () => _openEditBottomSheet(context, pack),
+            )
+          : null,
       body: CustomScrollView(
         slivers: [
-          //SliverAppBar 
+          // ---- Header --------------------------------------------------------
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -31,10 +42,15 @@ class PackageDetailPage extends StatelessWidget {
             expandedHeight: 220,
             title: Text(
               pack.name,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.fadeTitle, StretchMode.zoomBackground],
+              stretchModes: const [
+                StretchMode.fadeTitle,
+                StretchMode.zoomBackground
+              ],
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -47,10 +63,20 @@ class PackageDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
-                  Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
                   Positioned(
-                    left: 16, right: 16, bottom: 16,
+                    top: -40,
+                    right: -30,
+                    child: _GlowCircle(size: 180, color: Colors.white70),
+                  ),
+                  Positioned(
+                    bottom: -20,
+                    left: -10,
+                    child: _GlowCircle(size: 140, color: Colors.white54),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
                     child: _HeaderInfo(
                       badge: pack.badge,
                       durationMinutes: pack.durationMinutes,
@@ -62,6 +88,7 @@ class PackageDetailPage extends StatelessWidget {
             ),
           ),
 
+          // ---- Body ----------------------------------------------------------
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
@@ -76,7 +103,8 @@ class PackageDetailPage extends StatelessWidget {
                         child: Text(
                           pack.shortDescription,
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: Colors.black87, height: 1.25,
+                            color: Colors.black87,
+                            height: 1.25,
                           ),
                         ),
                       ),
@@ -84,32 +112,40 @@ class PackageDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
 
-                  // --- Highlights  ---
                   if (added.isNotEmpty) ...[
                     _SectionCard(
                       title: 'Highlights',
                       icon: Icons.star_rate_rounded,
                       iconColor: const Color(0xFFFFC107),
                       children: [
-                        ...added.map((s) => _LineItem(
-                              leading: const Icon(Icons.star_border_rounded, size: 22),
-                              text: s,
-                            )),
+                        ...added.map(
+                          (s) => _LineItem(
+                            leading: const Icon(
+                              Icons.star_border_rounded,
+                              size: 22,
+                            ),
+                            text: s,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  // --- Included services ---
                   _SectionCard(
                     title: 'Included Services',
                     icon: Icons.check_circle_rounded,
                     iconColor: Colors.teal,
                     children: [
-                      ...pack.services.map((s) => _LineItem(
-                            leading: const Icon(Icons.check_circle_outline, size: 22),
-                            text: s,
-                          )),
+                      ...pack.services.map(
+                        (s) => _LineItem(
+                          leading: const Icon(
+                            Icons.check_circle_outline,
+                            size: 22,
+                          ),
+                          text: s,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -124,18 +160,164 @@ class PackageDetailPage extends StatelessWidget {
       ),
     );
   }
+
+  // ===========================================================================
+  // Bottom sheet to edit price/duration/badge/description (signed-in only)
+  // ===========================================================================
+  Future<void> _openEditBottomSheet(
+      BuildContext context, Package pack) async {
+    final repo = PackagesRepository();
+    final priceCtrl = TextEditingController(text: pack.priceLabel);
+    final durationCtrl =
+        TextEditingController(text: pack.durationMinutes.toString());
+    final badgeCtrl = TextEditingController(text: pack.badge);
+    final descCtrl = TextEditingController(text: pack.shortDescription);
+
+    final formKey = GlobalKey<FormState>();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Edit Package',
+                    style: Theme.of(ctx).textTheme.titleLarge),
+                const SizedBox(height: 12),
+
+                // Price label
+                TextFormField(
+                  controller: priceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Price label (e.g. "50 CHF")',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
+                ),
+                const SizedBox(height: 12),
+
+                // Duration minutes
+                TextFormField(
+                  controller: durationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Duration (minutes)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    final n = int.tryParse(v ?? '');
+                    if (n == null || n <= 0) return 'Enter a valid number';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Badge
+                TextFormField(
+                  controller: badgeCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Badge (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Short description
+                TextFormField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Short description',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+
+                          final duration =
+                              int.parse(durationCtrl.text.trim());
+                          try {
+                            await repo.updatePackageFields(pack.id, {
+                              'priceLabel': priceCtrl.text.trim(),
+                              'durationMinutes': duration,
+                              'badge': badgeCtrl.text.trim(),
+                              'shortDescription': descCtrl.text.trim(),
+                            });
+
+                            if (!context.mounted) return;
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Package updated'),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Update failed: $e')),
+                            );
+                          }
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    priceCtrl.dispose();
+    durationCtrl.dispose();
+    badgeCtrl.dispose();
+    descCtrl.dispose();
+  }
 }
 
+// ===== Helper widgets =========================================================
 
 class _GlowCircle extends StatelessWidget {
-  final double size; final Color color;
+  final double size;
+  final Color color;
   const _GlowCircle({required this.size, required this.color});
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        shape: BoxShape.circle, color: color,
+        shape: BoxShape.circle,
+        color: color,
         boxShadow: [BoxShadow(color: color, blurRadius: 40, spreadRadius: 10)],
       ),
     );
@@ -143,29 +325,47 @@ class _GlowCircle extends StatelessWidget {
 }
 
 class _HeaderInfo extends StatelessWidget {
-  final String badge; final int durationMinutes; final String priceLabel;
-  const _HeaderInfo({required this.badge, required this.durationMinutes, required this.priceLabel});
+  final String badge;
+  final int durationMinutes;
+  final String priceLabel;
+  const _HeaderInfo({
+    required this.badge,
+    required this.durationMinutes,
+    required this.priceLabel,
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.85),
+        color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha :0.07), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          )
+        ],
       ),
       child: Row(
         children: [
           _BadgeChip(text: badge),
           const Spacer(),
-          Row(children: [
-            const Icon(Icons.schedule, size: 18, color: Colors.black87),
-            const SizedBox(width: 6),
-            Text('$durationMinutes min',
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
-            ),
-          ]),
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 18, color: Colors.black87),
+              const SizedBox(width: 6),
+              Text(
+                '$durationMinutes min',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(width: 12),
           _PricePill(text: priceLabel),
         ],
@@ -175,7 +375,8 @@ class _HeaderInfo extends StatelessWidget {
 }
 
 class _BadgeChip extends StatelessWidget {
-  final String text; const _BadgeChip({required this.text});
+  final String text;
+  const _BadgeChip({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -184,15 +385,25 @@ class _BadgeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         color: Colors.white,
         border: Border.all(color: const Color(0xFFDECFEE)),
-        boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 6, offset: Offset(0, 3))],
+        boxShadow: const [
+          BoxShadow(color: Color(0x11000000), blurRadius: 6, offset: Offset(0, 3))
+        ],
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: .2)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5,
+          letterSpacing: .2,
+        ),
+      ),
     );
   }
 }
 
 class _PricePill extends StatelessWidget {
-  final String text; const _PricePill({required this.text});
+  final String text;
+  const _PricePill({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -202,14 +413,25 @@ class _PricePill extends StatelessWidget {
         color: const Color(0xFFFFF3CC),
         border: Border.all(color: const Color(0xFFFFC107)),
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
     );
   }
 }
 
 class _SectionCard extends StatelessWidget {
-  final String title; final IconData icon; final Color iconColor; final List<Widget> children;
-  const _SectionCard({required this.title, required this.icon, required this.iconColor, required this.children});
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final List<Widget> children;
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.children,
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -217,8 +439,11 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 6))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 6))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +451,12 @@ class _SectionCard extends StatelessWidget {
           Row(children: [
             Icon(icon, color: iconColor),
             const SizedBox(width: 8),
-            Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ]),
           const SizedBox(height: 10),
           const Divider(height: 1),
@@ -239,20 +469,25 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _LineItem extends StatelessWidget {
-  final Widget leading; final String text;
+  final Widget leading;
+  final String text;
   const _LineItem({required this.leading, required this.text});
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      dense: true, minLeadingWidth: 6, contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: leading, title: Text(text, style: const TextStyle(fontSize: 16)),
+      dense: true,
+      minLeadingWidth: 6,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: leading,
+      title: Text(text, style: const TextStyle(fontSize: 16)),
       visualDensity: VisualDensity.compact,
     );
   }
 }
 
 class _PrimaryButton extends StatelessWidget {
-  final String text; final VoidCallback? onPressed;
+  final String text;
+  final VoidCallback? onPressed;
   const _PrimaryButton({required this.text, required this.onPressed});
   @override
   Widget build(BuildContext context) {
@@ -264,10 +499,20 @@ class _PrimaryButton extends StatelessWidget {
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(48)),
-            elevation: 0, backgroundColor: const Color(0xFF6C63FF), foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(48),
+            ),
+            elevation: 0,
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
           ),
-          child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: .2)),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: .2,
+            ),
+          ),
         ),
       ),
     );
