@@ -58,4 +58,13 @@ class PackagesRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+  Future<void> updatePackageFields(String id, Map<String, dynamic> data) {
+  // filter out nulls so we don't overwrite with null
+  final clean = <String, dynamic>{};
+  data.forEach((k, v) {
+    if (v != null) clean[k] = v;
+  });
+  return _col.doc(id).update(clean);
+}
+
 }
