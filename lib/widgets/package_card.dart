@@ -31,9 +31,6 @@ class _PackageCardState extends State<PackageCard> {
     final p = widget.pack;
     final theme = Theme.of(context);
 
-    final user = FirebaseAuth.instance.currentUser;
-// TODO: later, replace with real admin check (custom claims / users.role)
-final bool canEdit = user != null;
 
 
     return AnimatedScale(
@@ -68,8 +65,8 @@ final bool canEdit = user != null;
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        theme.colorScheme.surface.withOpacity(0.98),
-                        theme.colorScheme.surface.withOpacity(0.92),
+                        theme.colorScheme.surface.withValues(alpha : 0.98),
+                        theme.colorScheme.surface.withValues(alpha : 0.92),
                       ],
                     ),
                   ),
@@ -122,12 +119,12 @@ Row(
                     final newValue = !p.isActive;
                     try {
                       await _repo.setActive(p.id, newValue);
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(newValue ? 'Package enabled' : 'Package disabled')),
                       );
                     } catch (e) {
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Error updating status: $e')),
                       );
@@ -206,11 +203,11 @@ Row(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color:
-                                const Color(0xFFFFC107).withOpacity(0.15),
+                                const Color(0xFFFFC107).withValues(alpha : 0.15),
                             borderRadius: BorderRadius.circular(100),
                             border: Border.all(
                               color:
-                                  const Color(0xFFFFC107).withOpacity(0.6),
+                                  const Color(0xFFFFC107).withValues(alpha : 0.6),
                               width: 1,
                             ),
                           ),
@@ -246,7 +243,7 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black12),
-        color: theme.colorScheme.surface.withOpacity(0.7),
+        color: theme.colorScheme.surface.withValues(alpha : 0.7),
       ),
       child: Text(
         text,
