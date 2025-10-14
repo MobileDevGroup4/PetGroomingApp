@@ -5,6 +5,9 @@ import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 //import 'package:flutter_app/constants/pet_options.dart' as DropdownOptions;
 import 'package:flutter_app/constants/pet_options.dart';
+import 'dart:typed_data';  
+import 'package:image_picker/image_picker.dart';  
+import 'package:flutter_app/services/storage_service.dart';
 
 class EditPetPage extends StatefulWidget {
   final Pet pet;
@@ -26,6 +29,9 @@ class _EditPetPageState extends State<EditPetPage> {
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
   final List<int> _ageOptions = PetOptions.ageYears;
   final List<String> _sizeOptions = PetOptions.sizeLabels;
+  final _picker = ImagePicker();
+  final _fsStorage = FirestoreStorageService();
+  Uint8List? _localPhotoBytes;
 
   @override
   void initState() {
@@ -48,6 +54,47 @@ class _EditPetPageState extends State<EditPetPage> {
     _colourCtrl.dispose();
     _preferencesCtrl.dispose();
     super.dispose();
+  }
+  Future<void> _pickPhoto() async {
+    final x = await _picker.pickImage(
+      source: ImageSource.gallery, 
+      imageQuality: 65,
+      maxHeight: 800,
+      maxWidth: 800,
+    );
+    if (x == null) return;
+    _localPhotoBytes = await x.readAsBytes();
+    setState(() {});
+  }
+
+  Widget _photoSection(String uid, String petId) {
+    return FutureBuilder<Uint8List?>(
+      future: _fsStorage.loadPetImage(uid: uid, petId: petId),
+      builder: (context, snap) {
+        final display = _localPhotoBytes ?? snap.data;
+        final img = (display != null) ? MemoryImage(display) : null;
+        return Center(
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 48,
+                backgroundImage: img,
+                child: img == null ? const Icon(Icons.pets, size: 48) : null,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: IconButton.filledTonal(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Change photo',
+                  onPressed: _pickPhoto,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _save() async {
@@ -79,6 +126,15 @@ class _EditPetPageState extends State<EditPetPage> {
       colour: newColour,
       preferences: newPreferences,
     );
+
+    if (_localPhotoBytes != null) {
+      await _fsStorage.savePetImage(
+        uid: _uid!,
+        petId: widget.pet.id,
+        bytes: _localPhotoBytes!,
+      );
+      _localPhotoBytes = null;
+    }
 
     Navigator.pop(
       context,
@@ -148,6 +204,7 @@ class _EditPetPageState extends State<EditPetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final uid = _uid;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Pet'),
@@ -165,6 +222,7 @@ class _EditPetPageState extends State<EditPetPage> {
           key: _formKey,
           child: ListView(
             children: [
+              if (uid != null) _photoSection(uid, widget.pet.id),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameCtrl,
