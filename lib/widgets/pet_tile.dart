@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/screens/pets/pet_view.dart';
-import 'package:flutter_app/services/pet_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class PetTile extends StatelessWidget {
@@ -16,9 +15,6 @@ class PetTile extends StatelessWidget {
     );
   }
 
-  void _deletePet(BuildContext context) async {
-    await PetService(uid!).deletePet(pet.id);
-  }
 
   @override
   Widget build(BuildContext context) {

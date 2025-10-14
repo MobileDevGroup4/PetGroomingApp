@@ -4,7 +4,7 @@ import '../utils/package_diff.dart';
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
-  final List<Package> allPackages; // <<< on la reçoit depuis Home
+  final List<Package> allPackages; 
 
   const PackageDetailPage({
     super.key,
@@ -15,13 +15,13 @@ class PackageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = addedServicesForTier(pack, allPackages); // <<< ICI la diff
+    final added = addedServicesForTier(pack, allPackages); 
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
       body: CustomScrollView(
         slivers: [
-          // --- SliverAppBar avec titre dans la barre pour éviter le chevauchement ---
+          //SliverAppBar 
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -84,7 +84,7 @@ class PackageDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
 
-                  // --- Highlights : s'affiche seulement s'il y a des ajouts ---
+                  // --- Highlights  ---
                   if (added.isNotEmpty) ...[
                     _SectionCard(
                       title: 'Highlights',
@@ -126,7 +126,7 @@ class PackageDetailPage extends StatelessWidget {
   }
 }
 
-// ====== Widgets décor (inchangés) ======
+
 class _GlowCircle extends StatelessWidget {
   final double size; final Color color;
   const _GlowCircle({required this.size, required this.color});
@@ -151,9 +151,9 @@ class _HeaderInfo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.85),
+        color: Colors.white.withValues(alpha:0.85),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.07), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha :0.07), blurRadius: 14, offset: const Offset(0, 6))],
       ),
       child: Row(
         children: [
