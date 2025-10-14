@@ -36,7 +36,6 @@ class AuthService {
     }
   }
 
-  /// One-off check: is the current user an admin? (forces token refresh)
   Future<bool> isAdmin() async {
     final u = _auth.currentUser;
     if (u == null) return false;
@@ -44,15 +43,6 @@ class AuthService {
     return (t.claims?['admin'] as bool?) ?? false;
   }
 
-  /// Optional: call once after you change roles server-side
-  Future<void> refreshClaims() async {
-    final u = _auth.currentUser;
-    if (u != null) {
-      await u.getIdToken(true);
-    }
-  }
-
-  /// Reactive: emits true/false when the user's token changes (no forced refresh)
   Stream<bool> get adminRoleChanges async* {
     await for (final u in _auth.idTokenChanges()) {
       if (u == null) {
