@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../models/package.dart';
 import '../utils/package_diff.dart';
+import '../screens/date_time_screen.dart';
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
-  final List<Package> allPackages; 
+  final List<Package> allPackages;
 
   const PackageDetailPage({
     super.key,
@@ -15,13 +17,13 @@ class PackageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = addedServicesForTier(pack, allPackages); 
+    final added = addedServicesForTier(pack, allPackages);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
       body: CustomScrollView(
         slivers: [
-          //SliverAppBar 
+          //SliverAppBar
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -31,10 +33,15 @@ class PackageDetailPage extends StatelessWidget {
             expandedHeight: 220,
             title: Text(
               pack.name,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.fadeTitle, StretchMode.zoomBackground],
+              stretchModes: const [
+                StretchMode.fadeTitle,
+                StretchMode.zoomBackground,
+              ],
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -47,10 +54,20 @@ class PackageDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
-                  Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
                   Positioned(
-                    left: 16, right: 16, bottom: 16,
+                    top: -40,
+                    right: -30,
+                    child: _GlowCircle(size: 180, color: Colors.white70),
+                  ),
+                  Positioned(
+                    bottom: -20,
+                    left: -10,
+                    child: _GlowCircle(size: 140, color: Colors.white54),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
                     child: _HeaderInfo(
                       badge: pack.badge,
                       durationMinutes: pack.durationMinutes,
@@ -76,7 +93,8 @@ class PackageDetailPage extends StatelessWidget {
                         child: Text(
                           pack.shortDescription,
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: Colors.black87, height: 1.25,
+                            color: Colors.black87,
+                            height: 1.25,
                           ),
                         ),
                       ),
@@ -91,10 +109,15 @@ class PackageDetailPage extends StatelessWidget {
                       icon: Icons.star_rate_rounded,
                       iconColor: const Color(0xFFFFC107),
                       children: [
-                        ...added.map((s) => _LineItem(
-                              leading: const Icon(Icons.star_border_rounded, size: 22),
-                              text: s,
-                            )),
+                        ...added.map(
+                          (s) => _LineItem(
+                            leading: const Icon(
+                              Icons.star_border_rounded,
+                              size: 22,
+                            ),
+                            text: s,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -106,15 +129,30 @@ class PackageDetailPage extends StatelessWidget {
                     icon: Icons.check_circle_rounded,
                     iconColor: Colors.teal,
                     children: [
-                      ...pack.services.map((s) => _LineItem(
-                            leading: const Icon(Icons.check_circle_outline, size: 22),
-                            text: s,
-                          )),
+                      ...pack.services.map(
+                        (s) => _LineItem(
+                          leading: const Icon(
+                            Icons.check_circle_outline,
+                            size: 22,
+                          ),
+                          text: s,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
 
-                  _PrimaryButton(text: 'Booking coming soon', onPressed: null),
+                  _PrimaryButton(
+                    text: 'Book Now',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DateTimeScreen(package: pack),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 28),
                 ],
               ),
@@ -126,16 +164,18 @@ class PackageDetailPage extends StatelessWidget {
   }
 }
 
-
 class _GlowCircle extends StatelessWidget {
-  final double size; final Color color;
+  final double size;
+  final Color color;
   const _GlowCircle({required this.size, required this.color});
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        shape: BoxShape.circle, color: color,
+        shape: BoxShape.circle,
+        color: color,
         boxShadow: [BoxShadow(color: color, blurRadius: 40, spreadRadius: 10)],
       ),
     );
@@ -143,29 +183,47 @@ class _GlowCircle extends StatelessWidget {
 }
 
 class _HeaderInfo extends StatelessWidget {
-  final String badge; final int durationMinutes; final String priceLabel;
-  const _HeaderInfo({required this.badge, required this.durationMinutes, required this.priceLabel});
+  final String badge;
+  final int durationMinutes;
+  final String priceLabel;
+  const _HeaderInfo({
+    required this.badge,
+    required this.durationMinutes,
+    required this.priceLabel,
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.85),
+        color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha :0.07), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
           _BadgeChip(text: badge),
           const Spacer(),
-          Row(children: [
-            const Icon(Icons.schedule, size: 18, color: Colors.black87),
-            const SizedBox(width: 6),
-            Text('$durationMinutes min',
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
-            ),
-          ]),
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 18, color: Colors.black87),
+              const SizedBox(width: 6),
+              Text(
+                '$durationMinutes min',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(width: 12),
           _PricePill(text: priceLabel),
         ],
@@ -175,7 +233,8 @@ class _HeaderInfo extends StatelessWidget {
 }
 
 class _BadgeChip extends StatelessWidget {
-  final String text; const _BadgeChip({required this.text});
+  final String text;
+  const _BadgeChip({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -184,15 +243,29 @@ class _BadgeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         color: Colors.white,
         border: Border.all(color: const Color(0xFFDECFEE)),
-        boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 6, offset: Offset(0, 3))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: .2)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5,
+          letterSpacing: .2,
+        ),
+      ),
     );
   }
 }
 
 class _PricePill extends StatelessWidget {
-  final String text; const _PricePill({required this.text});
+  final String text;
+  const _PricePill({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -202,14 +275,25 @@ class _PricePill extends StatelessWidget {
         color: const Color(0xFFFFF3CC),
         border: Border.all(color: const Color(0xFFFFC107)),
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
     );
   }
 }
 
 class _SectionCard extends StatelessWidget {
-  final String title; final IconData icon; final Color iconColor; final List<Widget> children;
-  const _SectionCard({required this.title, required this.icon, required this.iconColor, required this.children});
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final List<Widget> children;
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.children,
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -217,17 +301,31 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 6))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, color: iconColor),
-            const SizedBox(width: 8),
-            Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-          ]),
+          Row(
+            children: [
+              Icon(icon, color: iconColor),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           const Divider(height: 1),
           const SizedBox(height: 6),
@@ -239,20 +337,25 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _LineItem extends StatelessWidget {
-  final Widget leading; final String text;
+  final Widget leading;
+  final String text;
   const _LineItem({required this.leading, required this.text});
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      dense: true, minLeadingWidth: 6, contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: leading, title: Text(text, style: const TextStyle(fontSize: 16)),
+      dense: true,
+      minLeadingWidth: 6,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: leading,
+      title: Text(text, style: const TextStyle(fontSize: 16)),
       visualDensity: VisualDensity.compact,
     );
   }
 }
 
 class _PrimaryButton extends StatelessWidget {
-  final String text; final VoidCallback? onPressed;
+  final String text;
+  final VoidCallback? onPressed;
   const _PrimaryButton({required this.text, required this.onPressed});
   @override
   Widget build(BuildContext context) {
@@ -264,10 +367,20 @@ class _PrimaryButton extends StatelessWidget {
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(48)),
-            elevation: 0, backgroundColor: const Color(0xFF6C63FF), foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(48),
+            ),
+            elevation: 0,
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
           ),
-          child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: .2)),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: .2,
+            ),
+          ),
         ),
       ),
     );

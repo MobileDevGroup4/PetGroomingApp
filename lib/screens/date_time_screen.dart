@@ -2,25 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../models/service.dart';
+import '../models/package.dart';
 import '../services/booking_service.dart';
 
 class DateTimeScreen extends StatefulWidget {
-  final Service service;
-  const DateTimeScreen({super.key, required this.service});
+  final Service? service;
+  final Package? package;
+
+  const DateTimeScreen({super.key, this.service, this.package})
+    : assert(
+        service != null || package != null,
+        'Either service or package must be provided',
+      );
 
   @override
   State<DateTimeScreen> createState() => _DateTimeScreenState();
 }
 
 class _DateTimeScreenState extends State<DateTimeScreen> {
-  final BookingService _bookingService =
-      BookingService(); // <-- Instantiate service
+  final BookingService _bookingService = BookingService();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String? _selectedTimeSlot;
 
   // This will hold the generated available slots
   late Future<List<String>> _availableTimeSlotsFuture;
+
+  // Helper geteers to know what we are booking
+  bool get isService => widget.service != null;
+  bool get isPackage => widget.package != null;
+
+  String get itemName =>
+      isService ? widget.service!.name : widget.package!.name;
+  int get itemDuration =>
+      isService ? widget.service!.duration : widget.package!.durationMinutes;
 
   @override
   void initState() {
@@ -44,7 +59,7 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
     final availableSlots = allPossibleSlots.where((slot) {
       final slotDateTime = _parseSlot(date, slot);
       final slotEndTime = slotDateTime.add(
-        Duration(minutes: widget.service.duration),
+        Duration(minutes: itemDuration + 10),
       );
 
       // Check if the potential slot overlaps with any existing booking
@@ -52,7 +67,7 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
         final bookingStart = booking.startTime.toDate();
         final bookingEnd = booking.endTime.toDate();
 
-        // Simple overlap check:
+        // overlap check:
         // (SlotStart < BookingEnd) and (SlotEnd > BookingStart)
         if (slotDateTime.isBefore(bookingEnd) &&
             slotEndTime.isAfter(bookingStart)) {
@@ -65,25 +80,47 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
     return availableSlots;
   }
 
-  // Helper to generate slots from 9:00 AM to 5:00 PM every 30 mins
+  // Helper to generate slots from 9:00 AM to 5:00 PM
+  // Slots are generated based on service duration + buffer time
   List<String> _generateAllTimeSlots(DateTime date) {
     final List<String> slots = [];
-    final startTime = DateTime(
+
+    // Service duration + 10 minute buffer
+    final int slotInterval = itemDuration + 10;
+
+    // Start time: 9:00 AM
+    int startHour = 9;
+    int startMinute = 0;
+
+    // End time: 5:00 PM (17:00)
+    int endHour = 17;
+
+    DateTime currentSlot = DateTime(
       date.year,
       date.month,
       date.day,
-      9,
-      0,
-    ); // 9:00 AM
-    final endTime = DateTime(date.year, date.month, date.day, 17, 0); // 5:00 PM
+      startHour,
+      startMinute,
+    );
 
-    var currentTime = startTime;
-    while (currentTime.isBefore(endTime)) {
-      slots.add(
-        '${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}',
-      );
-      currentTime = currentTime.add(const Duration(minutes: 30));
+    final DateTime endTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      endHour,
+      0,
+    );
+
+    while (currentSlot.isBefore(endTime)) {
+      // Format as "HH:mm" (e.g., "09:00", "14:30")
+      final String timeString =
+          '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
+      slots.add(timeString);
+
+      // Move to next slot (service duration + buffer)
+      currentSlot = currentSlot.add(Duration(minutes: slotInterval));
     }
+
     return slots;
   }
 
@@ -96,171 +133,158 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
   }
   // --- End of CORE LOGIC ---
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Select Date & Time for ${widget.service.name}'),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTableCalendar(),
-              const SizedBox(height: 24),
-              const Text(
-                'Available Time Slots',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-
-              // vvvv Using a FutureBuilder for the time slots vvvv
-              FutureBuilder<List<String>>(
-                future: _availableTimeSlotsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading slots.'));
-                  }
-                  final slots = snapshot.data ?? [];
-                  if (slots.isEmpty) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text('No available time slots for this day.'),
-                      ),
-                    );
-                  }
-                  return _buildTimeSlotGrid(
-                    slots,
-                  ); // Pass the real slots to the grid
-                },
-              ),
-
-              // ^^^^ End of FutureBuilder ^^^^
-              const SizedBox(height: 32),
-              Center(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  onPressed: (_selectedDay == null || _selectedTimeSlot == null)
-                      ? null
-                      : () async {
-                          final scaffoldMessenger = ScaffoldMessenger.of(
-                            context,
-                          );
-                          final navigator = Navigator.of(context);
-                          try {
-                            // 1. Prepare the data
-                            final selectedStartTime = _parseSlot(
-                              _selectedDay!,
-                              _selectedTimeSlot!,
-                            );
-
-                            // 2. Call the service to create the booking
-                            await _bookingService.createBooking(
-                              service: widget.service,
-                              startTime: selectedStartTime,
-                              // TODO: add petId
-                            );
-
-                            // 3. Show a success message and navigate back
-                            if (mounted) {
-                              scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Booking confirmed successfully!',
-                                  ),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                              // Pop all routes until we get back to the first screen
-                              navigator.popUntil((route) => route.isFirst);
-                            }
-                          } catch (e) {
-                            // 4. Show an error message if something goes wrong
-                            if (mounted) {
-                              scaffoldMessenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(e.toString()),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                  child: const Text('Proceed to Confirmation'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTableCalendar() {
-    return Card(
-      elevation: 2,
-      child: TableCalendar(
-        firstDay: DateTime.now(),
-        lastDay: DateTime.now().add(const Duration(days: 60)),
-        focusedDay: _focusedDay,
-        calendarFormat: CalendarFormat.month,
-        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-        onDaySelected: (selectedDay, focusedDay) {
-          if (!isSameDay(_selectedDay, selectedDay)) {
-            setState(() {
-              _selectedDay = selectedDay;
-              _focusedDay = focusedDay;
-              _selectedTimeSlot = null;
-              // When a new day is selected, re-fetch the slots for that day
-              _availableTimeSlotsFuture = _getAvailableTimeSlots(selectedDay);
-            });
-          }
-        },
-        headerStyle: const HeaderStyle(
-          titleCentered: true,
-          formatButtonVisible: false,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimeSlotGrid(List<String> timeSlots) {
+  Widget _buildTimeSlotGrid(List<String> slots) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+        crossAxisCount: 3,
         childAspectRatio: 2.5,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
-      itemCount: timeSlots.length,
+      itemCount: slots.length,
       itemBuilder: (context, index) {
-        final slot = timeSlots[index];
+        final slot = slots[index];
         final isSelected = slot == _selectedTimeSlot;
-
-        return ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isSelected ? Colors.orange : Colors.grey[200],
-            foregroundColor: isSelected ? Colors.white : Colors.black87,
-            elevation: isSelected ? 4 : 1,
-          ),
-          onPressed: () {
+        return GestureDetector(
+          onTap: () {
             setState(() {
               _selectedTimeSlot = slot;
             });
           },
-          child: Text(slot),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.blue : Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              slot,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Book $itemName')),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            TableCalendar(
+              firstDay: DateTime.now(),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                  _selectedTimeSlot = null;
+                  _availableTimeSlotsFuture = _getAvailableTimeSlots(
+                    selectedDay,
+                  );
+                });
+              },
+              calendarFormat: CalendarFormat.month,
+            ),
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Select a time slot:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FutureBuilder<List<String>>(
+              future: _availableTimeSlotsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                final slots = snapshot.data ?? [];
+                if (slots.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No available time slots for this day.'),
+                    ),
+                  );
+                }
+                return _buildTimeSlotGrid(slots);
+              },
+            ),
+            const SizedBox(height: 32),
+            Center(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: (_selectedDay == null || _selectedTimeSlot == null)
+                    ? null
+                    : () async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(context);
+                        try {
+                          final selectedStartTime = _parseSlot(
+                            _selectedDay!,
+                            _selectedTimeSlot!,
+                          );
+
+                          // Call the appropriate booking method
+                          if (isService) {
+                            await _bookingService.createServiceBooking(
+                              service: widget.service!,
+                              startTime: selectedStartTime,
+                            );
+                          } else {
+                            await _bookingService.createPackageBooking(
+                              package: widget.package!,
+                              startTime: selectedStartTime,
+                            );
+                          }
+
+                          if (mounted) {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Booking confirmed successfully!',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            navigator.popUntil((route) => route.isFirst);
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: const Text('Confirm Booking'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
