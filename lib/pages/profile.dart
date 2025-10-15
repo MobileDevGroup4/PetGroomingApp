@@ -1,11 +1,9 @@
-// lib/pages/profile.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:typed_data';
 import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../widgets/pet_section.dart';
-import '../screens/booking_screen.dart';
 import '../screens/booking_selection_screen.dart';
 import '../screens/user/profile_edit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
