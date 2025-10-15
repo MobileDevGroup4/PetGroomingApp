@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../widgets/pet_section.dart';
 import '../screens/booking_screen.dart';
+import '../screens/booking_selection_screen.dart';
 import '../screens/user/profile_edit.dart';
 import 'dart:typed_data';
 import '../services/storage_service.dart';
@@ -100,7 +101,7 @@ class Profile extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const BookingScreen(),
+                          builder: (context) => const BookingSelectionScreen(),
                         ),
                       );
                     },

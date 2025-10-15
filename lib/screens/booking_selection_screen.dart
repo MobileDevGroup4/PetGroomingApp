@@ -79,14 +79,169 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                   _buildSectionHeader('Individual Services'),
                   const SizedBox(height: 12),
 
-                  // TODO: add service list
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _services.length,
+                    itemBuilder: (context, index) {
+                      final service = _services[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            service.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${service.description}\nDuration: ${service.duration} minutes',
+                          ),
+                          trailing: Text(
+                            '${service.price.toStringAsFixed(2)} CHF',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    DateTimeScreen(service: service),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 32),
 
                   // Package selection
                   _buildSectionHeader('Packages Bundles'),
                   const SizedBox(height: 12),
 
-                  // TODO: add package list
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _packages.length,
+                    itemBuilder: (context, index) {
+                      final package = _packages[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    DateTimeScreen(package: package),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header row: Badge + Duration
+                                Row(
+                                  children: [
+                                    // Badge
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: Colors.black12,
+                                        ),
+                                        color: Colors.grey[100],
+                                      ),
+                                      child: Text(
+                                        package.badge,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    // Duration
+                                    const Icon(Icons.schedule, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${package.durationMinutes} min',
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Package name
+                                Text(
+                                  package.name,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Short description
+                                Text(
+                                  package.shortDescription,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                // Price (at bottom)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFFFFC107,
+                                    ).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(100),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFFFFC107,
+                                      ).withValues(alpha: 0.6),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    package.priceLabel,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
