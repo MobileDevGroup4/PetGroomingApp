@@ -99,30 +99,62 @@ class _EditPetPageState extends State<EditPetPage> {
       },
     );
   }
+Future<void> _save() async {
+  if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  final uid = _uid;
+  if (uid == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Not signed in')),
+    );
+    return;
+  }
 
-    final uid = _uid;
-    if (uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not signed in')),
+  final newName        = _nameCtrl.text.trim();
+  final newBreed       = _breedCtrl.text.trim();
+  final newAge         = _selectedAge ?? widget.pet.age;
+  final newSize        = _selectedSize ?? widget.pet.size;
+  final newWeight      = double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
+  final newColour      = _colourCtrl.text.trim();
+  final newPreferences = _preferencesCtrl.text.trim();
+
+  // 1) Met à jour les champs texte
+  await PetService(uid).updatePet(
+    widget.pet.id,
+    name: newName,
+    breed: newBreed,
+    age: newAge,
+    size: newSize,
+    weight: newWeight,
+    colour: newColour,
+    preferences: newPreferences,
+  );
+
+  // 2) Upload la photo si l’utilisateur en a choisi une
+  if (_localPhotoBytes != null) {
+    try {
+      await _fsStorage.savePetImage(
+        uid: uid,
+        petId: widget.pet.id,
+        bytes: _localPhotoBytes!,
       );
-      return;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Photo save failed: $e')),
+      );
+      return; // on ne pop pas si l'upload échoue
     }
+    _localPhotoBytes = null;
+  }
 
-    final newName = _nameCtrl.text.trim();
-    final newBreed = _breedCtrl.text.trim();
-    final newAge = _selectedAge ?? widget.pet.age;
-    final newSize = _selectedSize ?? widget.pet.size;
-    final newWeight =
-        double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
-    final newColour = _colourCtrl.text.trim();
-    final newPreferences = _preferencesCtrl.text.trim();
+  if (!mounted) return;
 
-    // 1) Update pet fields
-    await PetService(uid).updatePet(
-      widget.pet.id,
+  // 3) Retourne le Pet mis à jour à l’écran précédent (un seul pop)
+  Navigator.pop(
+    context,
+    Pet(
+      id: widget.pet.id,
       name: newName,
       breed: newBreed,
       age: newAge,
@@ -130,43 +162,9 @@ class _EditPetPageState extends State<EditPetPage> {
       weight: newWeight,
       colour: newColour,
       preferences: newPreferences,
-    );
-
-    // 2) Save photo if changed (inside _save!)
-    if (_localPhotoBytes != null) {
-      try {
-        await _fsStorage.savePetImage(
-          uid: uid,
-          petId: widget.pet.id,
-          bytes: _localPhotoBytes!,
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Photo save failed: $e')),
-        );
-        return; // don’t pop if saving image failed
-      }
-      _localPhotoBytes = null;
-    }
-
-    if (!mounted) return;
-
-    // 3) Return updated Pet once
-    Navigator.pop(
-      context,
-      Pet(
-        id: widget.pet.id,
-        name: newName,
-        breed: newBreed,
-        age: newAge,
-        size: newSize,
-        weight: newWeight,
-        colour: newColour,
-        preferences: newPreferences,
-      ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _delete() async {
     if (_uid == null) {
