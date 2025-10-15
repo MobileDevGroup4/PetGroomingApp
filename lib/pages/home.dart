@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/package_card.dart';
 import 'package_detail.dart';
 import '../repositories/packages_repository.dart';
