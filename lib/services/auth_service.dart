@@ -12,14 +12,11 @@ class AuthService {
   /// Register new user with email and password
   Future<UserCredential?> register(String email, String password) async {
     try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
+      final result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      // Send email verification
       await result.user?.sendEmailVerification();
-
       return result;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthError(e);
@@ -29,13 +26,31 @@ class AuthService {
   /// Login with email and password
   Future<UserCredential?> login(String email, String password) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
+      final result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return result;
+      return result; // <-- return the credential
     } on FirebaseAuthException catch (e) {
       throw _handleAuthError(e);
+    }
+  }
+
+  Future<bool> isAdmin() async {
+    final u = _auth.currentUser;
+    if (u == null) return false;
+    final t = await u.getIdTokenResult(true); // force refresh
+    return (t.claims?['admin'] as bool?) ?? false;
+  }
+
+  Stream<bool> get adminRoleChanges async* {
+    await for (final u in _auth.idTokenChanges()) {
+      if (u == null) {
+        yield false;
+      } else {
+        final t = await u.getIdTokenResult();
+        yield (t.claims?['admin'] as bool?) ?? false;
+      }
     }
   }
 
