@@ -99,22 +99,24 @@ class _EditPetPageState extends State<EditPetPage> {
 Future<void> _save() async {
   if (!_formKey.currentState!.validate()) return;
 
-  if (_uid == null) {
+  final uid = _uid;
+  if (uid == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Not signed in')),
     );
     return;
   }
 
-  final newName = _nameCtrl.text.trim();
-  final newBreed = _breedCtrl.text.trim();
-  final newAge = _selectedAge ?? widget.pet.age;
-  final newSize = _selectedSize ?? widget.pet.size;
-  final newWeight = double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
-  final newColour = _colourCtrl.text.trim();
+  final newName        = _nameCtrl.text.trim();
+  final newBreed       = _breedCtrl.text.trim();
+  final newAge         = _selectedAge ?? widget.pet.age;
+  final newSize        = _selectedSize ?? widget.pet.size;
+  final newWeight      = double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
+  final newColour      = _colourCtrl.text.trim();
   final newPreferences = _preferencesCtrl.text.trim();
 
-  await PetService(_uid!).updatePet(
+  // 1) Met à jour les champs texte
+  await PetService(uid).updatePet(
     widget.pet.id,
     name: newName,
     breed: newBreed,
@@ -125,9 +127,24 @@ Future<void> _save() async {
     preferences: newPreferences,
   );
 
-  
+  // 2) Upload la photo si l’utilisateur en a choisi une
+  if (_localPhotoBytes != null) {
+    try {
+      await _fsStorage.savePetImage(
+        uid: uid,
+        petId: widget.pet.id,
+        bytes: _localPhotoBytes!,
+      );
+    } catch (e) {
+      // Optionnel: afficher un message si l'upload échoue
+      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Photo upload failed: $e')));
+    }
+    _localPhotoBytes = null;
+  }
+
   if (!mounted) return;
 
+  // 3) Retourne le Pet mis à jour à l’écran précédent
   Navigator.pop(
     context,
     Pet(
@@ -143,29 +160,6 @@ Future<void> _save() async {
   );
 }
 
-    if (_localPhotoBytes != null) {
-      await _fsStorage.savePetImage(
-        uid: _uid!,
-        petId: widget.pet.id,
-        bytes: _localPhotoBytes!,
-      );
-      _localPhotoBytes = null;
-    }
-
-    Navigator.pop(
-      context,
-      Pet(
-        id: widget.pet.id,
-        name: newName,
-        breed: newBreed,
-        age: newAge,
-        size: newSize,
-        weight: newWeight,
-        colour: newColour,
-        preferences: newPreferences,
-      ),
-    );
-  }
 
 
 Future<void> _delete() async {

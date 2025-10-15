@@ -179,27 +179,33 @@ class _EditPackageSheet extends StatefulWidget {
 
 class _EditPackageSheetState extends State<_EditPackageSheet> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl;
   late final TextEditingController _priceCtrl;
   late final TextEditingController _durationCtrl;
   late final TextEditingController _badgeCtrl;
   late final TextEditingController _descCtrl;
+  late final TextEditingController _servicesCtrl; 
   final _repo = PackagesRepository();
 
   @override
   void initState() {
     super.initState();
-    _priceCtrl = TextEditingController(text: widget.pack.priceLabel);
+    _nameCtrl     = TextEditingController(text: widget.pack.name);                      // NEW
+    _priceCtrl    = TextEditingController(text: widget.pack.priceLabel);
     _durationCtrl = TextEditingController(text: widget.pack.durationMinutes.toString());
-    _badgeCtrl = TextEditingController(text: widget.pack.badge);
-    _descCtrl = TextEditingController(text: widget.pack.shortDescription);
+    _badgeCtrl    = TextEditingController(text: widget.pack.badge);
+    _descCtrl     = TextEditingController(text: widget.pack.shortDescription);
+    _servicesCtrl = TextEditingController(text: widget.pack.services.join('\n'));       // NEW (une ligne par service)
   }
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _priceCtrl.dispose();
     _durationCtrl.dispose();
     _badgeCtrl.dispose();
     _descCtrl.dispose();
+    _servicesCtrl.dispose(); // NEW
     super.dispose();
   }
 
@@ -207,9 +213,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
+        left: 16, right: 16, top: 16,
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
       child: Form(
@@ -220,16 +224,32 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
             Text('Edit Package', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
 
+            // ---------- NAME (NEW) ----------
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.words,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+            ),
+            const SizedBox(height: 12),
+
+            // ---------- PRICE ----------
             TextFormField(
               controller: _priceCtrl,
               decoration: const InputDecoration(
                 labelText: 'Price label (e.g. "50 CHF")',
                 border: OutlineInputBorder(),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
             ),
             const SizedBox(height: 12),
 
+            // ---------- DURATION ----------
             TextFormField(
               controller: _durationCtrl,
               decoration: const InputDecoration(
@@ -245,6 +265,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
             ),
             const SizedBox(height: 12),
 
+            // ---------- BADGE ----------
             TextFormField(
               controller: _badgeCtrl,
               decoration: const InputDecoration(
@@ -254,6 +275,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
             ),
             const SizedBox(height: 12),
 
+            // ---------- SHORT DESCRIPTION ----------
             TextFormField(
               controller: _descCtrl,
               decoration: const InputDecoration(
@@ -261,6 +283,23 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+
+            // ---------- SERVICES (NEW) ----------
+            TextFormField(
+              controller: _servicesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Included services (one per line)',
+                hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 6,
+              keyboardType: TextInputType.multiline,
+              validator: (v) {
+                final items = _linesToServices(v ?? '');
+                return items.isEmpty ? 'Add at least one service' : null;
+              },
             ),
 
             const SizedBox(height: 16),
@@ -271,24 +310,24 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                     onPressed: () async {
                       if (!_formKey.currentState!.validate()) return;
 
-                      // 1) Fermer le clavier avant toute navigation
                       FocusScope.of(context).unfocus();
+                      final duration = int.parse(_durationCtrl.text.trim());
+                      final services = _linesToServices(_servicesCtrl.text);
 
                       try {
-                        final duration = int.parse(_durationCtrl.text.trim());
                         await _repo.updatePackageFields(widget.pack.id, {
+                          'name': _nameCtrl.text.trim(),                 // NEW
                           'priceLabel': _priceCtrl.text.trim(),
                           'durationMinutes': duration,
                           'badge': _badgeCtrl.text.trim(),
                           'shortDescription': _descCtrl.text.trim(),
+                          'services': services,                           // NEW (array<string>)
                         });
-
                         if (!mounted) return;
-                        // 2) Pop la sheet avec SON propre contexte
-                        Navigator.of(context).pop(true); // succès
+                        Navigator.of(context).pop(true);
                       } catch (_) {
                         if (!mounted) return;
-                        Navigator.of(context).pop(false); // échec
+                        Navigator.of(context).pop(false);
                       }
                     },
                     child: const Text('Save'),
@@ -299,7 +338,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                   child: OutlinedButton(
                     onPressed: () {
                       FocusScope.of(context).unfocus();
-                      Navigator.of(context).pop(false); // annuler
+                      Navigator.of(context).pop(false);
                     },
                     child: const Text('Cancel'),
                   ),
@@ -310,6 +349,21 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
         ),
       ),
     );
+  }
+
+  /// Transforme un textarea en liste de services (une ligne = un service)
+  List<String> _linesToServices(String raw) {
+    final lines = raw
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    // Optionnel: retirer les doublons en conservant l’ordre
+    final seen = <String>{};
+    return [
+      for (final s in lines)
+        if (seen.add(s)) s
+    ];
   }
 }
 
