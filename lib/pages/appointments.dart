@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../screens/booking_selection_screen.dart';
 import '../models/booking.dart';
 import '../services/booking_service.dart';
+import '../screens/reschedule_screen.dart';
 
 class Appointments extends StatefulWidget {
   const Appointments({super.key, required this.theme});
@@ -75,6 +77,79 @@ class _AppointmentsState extends State<Appointments> {
     );
   }
 
+  // Check if booking can be modified (12+ hours away)
+  bool _canModifyBooking(Booking booking) {
+    final appointmentTime = booking.startTime.toDate();
+    final now = DateTime.now();
+    final difference = appointmentTime.difference(now);
+    return difference.inHours >= 12;
+  }
+
+  void _rescheduleAppointment(Booking booking) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RescheduleScreen(booking: booking),
+      ),
+    );
+  }
+
+  void _cancelAppointment(Booking booking) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cancel Appointment'),
+          content: Text(
+            'Are you sure you want to cancel your ${booking.itemName} appointment?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Keep Appointment'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _performCancelBooking(booking);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Cancel Appointment'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performCancelBooking(Booking booking) async {
+    try {
+      // Delete the booking from Firestore
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(booking.id)
+          .delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Appointment cancelled successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cancelling appointment: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   // Helper Widget for displaying a single booking
   Widget _buildBookingCard(Booking booking) {
     // Using intl package for nice date formatting.
@@ -95,10 +170,27 @@ class _AppointmentsState extends State<Appointments> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('$formattedDate at $formattedTime'),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-        onTap: () {
-          // TODO: Navigate to a booking detail screen (future enhancement)
-        },
+
+        trailing: _canModifyBooking(booking)
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => _rescheduleAppointment(booking),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    onPressed: () => _cancelAppointment(booking),
+                  ),
+                ],
+              )
+            : const Icon(Icons.arrow_forward_ios, size: 14),
+        onTap: _canModifyBooking(booking)
+            ? null
+            : () {
+                // TODO: Navigate to a booking detail screen (future enhancement)
+              },
       ),
     );
   }
