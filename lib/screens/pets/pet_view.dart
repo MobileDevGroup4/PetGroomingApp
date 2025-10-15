@@ -25,18 +25,20 @@ class _PetViewState extends State<PetView> {
   }
 
   Future<void> _openEdit() async {
-    final updated = await Navigator.push<Pet>(
-      context,
-      MaterialPageRoute(builder: (_) => EditPetPage(pet: _pet)),
-    );
+  final updated = await Navigator.push<Pet>(
+    context,
+    MaterialPageRoute(builder: (_) => EditPetPage(pet: _pet)),
+  );
 
-    if (updated != null) {
-      setState(() => _pet = updated);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Pet updated')));
-    }
+  if (!mounted) return; 
+
+  if (updated != null) {
+    setState(() => _pet = updated);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Pet updated')));
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

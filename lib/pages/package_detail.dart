@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/package.dart';
 import '../utils/package_diff.dart';
+import '../repositories/packages_repository.dart';
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
-  final List<Package> allPackages; // <<< on la reçoit depuis Home
+  final List<Package> allPackages;
 
   const PackageDetailPage({
     super.key,
@@ -15,13 +18,23 @@ class PackageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = addedServicesForTier(pack, allPackages); // <<< ICI la diff
+    final added = addedServicesForTier(pack, allPackages);
+    final isSignedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
+
+      // Ouvre uniquement la sheet
+      floatingActionButton: isSignedIn
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit'),
+              onPressed: () => _openEditBottomSheet(context, pack),
+            )
+          : null,
+
       body: CustomScrollView(
         slivers: [
-          // --- SliverAppBar avec titre dans la barre pour éviter le chevauchement ---
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -31,7 +44,9 @@ class PackageDetailPage extends StatelessWidget {
             expandedHeight: 220,
             title: Text(
               pack.name,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [StretchMode.fadeTitle, StretchMode.zoomBackground],
@@ -47,10 +62,12 @@ class PackageDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
-                  Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
+                  const Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
+                  const Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
                   Positioned(
-                    left: 16, right: 16, bottom: 16,
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
                     child: _HeaderInfo(
                       badge: pack.badge,
                       durationMinutes: pack.durationMinutes,
@@ -62,6 +79,7 @@ class PackageDetailPage extends StatelessWidget {
             ),
           ),
 
+          // Body
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
@@ -76,7 +94,8 @@ class PackageDetailPage extends StatelessWidget {
                         child: Text(
                           pack.shortDescription,
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: Colors.black87, height: 1.25,
+                            color: Colors.black87,
+                            height: 1.25,
                           ),
                         ),
                       ),
@@ -84,37 +103,35 @@ class PackageDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
 
-                  // --- Highlights : s'affiche seulement s'il y a des ajouts ---
                   if (added.isNotEmpty) ...[
                     _SectionCard(
                       title: 'Highlights',
                       icon: Icons.star_rate_rounded,
                       iconColor: const Color(0xFFFFC107),
-                      children: [
-                        ...added.map((s) => _LineItem(
-                              leading: const Icon(Icons.star_border_rounded, size: 22),
-                              text: s,
-                            )),
-                      ],
+                      children: added
+                          .map((s) => _LineItem(
+                                leading: const Icon(Icons.star_border_rounded, size: 22),
+                                text: s,
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  // --- Included services ---
                   _SectionCard(
                     title: 'Included Services',
                     icon: Icons.check_circle_rounded,
                     iconColor: Colors.teal,
-                    children: [
-                      ...pack.services.map((s) => _LineItem(
-                            leading: const Icon(Icons.check_circle_outline, size: 22),
-                            text: s,
-                          )),
-                    ],
+                    children: pack.services
+                        .map((s) => _LineItem(
+                              leading: const Icon(Icons.check_circle_outline, size: 22),
+                              text: s,
+                            ))
+                        .toList(),
                   ),
                   const SizedBox(height: 24),
 
-                  _PrimaryButton(text: 'Booking coming soon', onPressed: null),
+                  const _PrimaryButton(text: 'Booking coming soon', onPressed: null),
                   const SizedBox(height: 28),
                 ],
               ),
@@ -124,18 +141,191 @@ class PackageDetailPage extends StatelessWidget {
       ),
     );
   }
+
+  /// Ouvre la sheet et affiche un SnackBar une fois fermée
+  Future<void> _openEditBottomSheet(BuildContext context, Package pack) async {
+    final bool? didSave = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => _EditPackageSheet(pack: pack),
+    );
+
+    if (!context.mounted) return;
+
+    if (didSave == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Package updated')),
+      );
+    } else if (didSave == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Update failed')),
+      );
+    }
+  }
 }
 
-// ====== Widgets décor (inchangés) ======
+/// ===== Bottom sheet autonome (Stateful) ======================================
+class _EditPackageSheet extends StatefulWidget {
+  const _EditPackageSheet({required this.pack});
+  final Package pack;
+
+  @override
+  State<_EditPackageSheet> createState() => _EditPackageSheetState();
+}
+
+class _EditPackageSheetState extends State<_EditPackageSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _priceCtrl;
+  late final TextEditingController _durationCtrl;
+  late final TextEditingController _badgeCtrl;
+  late final TextEditingController _descCtrl;
+  final _repo = PackagesRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _priceCtrl = TextEditingController(text: widget.pack.priceLabel);
+    _durationCtrl = TextEditingController(text: widget.pack.durationMinutes.toString());
+    _badgeCtrl = TextEditingController(text: widget.pack.badge);
+    _descCtrl = TextEditingController(text: widget.pack.shortDescription);
+  }
+
+  @override
+  void dispose() {
+    _priceCtrl.dispose();
+    _durationCtrl.dispose();
+    _badgeCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Edit Package', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _priceCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Price label (e.g. "50 CHF")',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _durationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                final n = int.tryParse(v ?? '');
+                if (n == null || n <= 0) return 'Enter a valid number';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _badgeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Badge (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _descCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Short description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () async {
+                      if (!_formKey.currentState!.validate()) return;
+
+                      // 1) Fermer le clavier avant toute navigation
+                      FocusScope.of(context).unfocus();
+
+                      try {
+                        final duration = int.parse(_durationCtrl.text.trim());
+                        await _repo.updatePackageFields(widget.pack.id, {
+                          'priceLabel': _priceCtrl.text.trim(),
+                          'durationMinutes': duration,
+                          'badge': _badgeCtrl.text.trim(),
+                          'shortDescription': _descCtrl.text.trim(),
+                        });
+
+                        if (!mounted) return;
+                        // 2) Pop la sheet avec SON propre contexte
+                        Navigator.of(context).pop(true); // succès
+                      } catch (_) {
+                        if (!mounted) return;
+                        Navigator.of(context).pop(false); // échec
+                      }
+                    },
+                    child: const Text('Save'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
+                      Navigator.of(context).pop(false); // annuler
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ===== Helpers UI ============================================================
 class _GlowCircle extends StatelessWidget {
-  final double size; final Color color;
+  final double size;
+  final Color color;
   const _GlowCircle({required this.size, required this.color});
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        shape: BoxShape.circle, color: color,
+        shape: BoxShape.circle,
+        color: color,
         boxShadow: [BoxShadow(color: color, blurRadius: 40, spreadRadius: 10)],
       ),
     );
@@ -143,29 +333,47 @@ class _GlowCircle extends StatelessWidget {
 }
 
 class _HeaderInfo extends StatelessWidget {
-  final String badge; final int durationMinutes; final String priceLabel;
-  const _HeaderInfo({required this.badge, required this.durationMinutes, required this.priceLabel});
+  final String badge;
+  final int durationMinutes;
+  final String priceLabel;
+  const _HeaderInfo({
+    required this.badge,
+    required this.durationMinutes,
+    required this.priceLabel,
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.85),
+        color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.07), blurRadius: 14, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          )
+        ],
       ),
       child: Row(
         children: [
           _BadgeChip(text: badge),
           const Spacer(),
-          Row(children: [
-            const Icon(Icons.schedule, size: 18, color: Colors.black87),
-            const SizedBox(width: 6),
-            Text('$durationMinutes min',
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
-            ),
-          ]),
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 18, color: Colors.black87),
+              const SizedBox(width: 6),
+              Text(
+                '$durationMinutes min',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(width: 12),
           _PricePill(text: priceLabel),
         ],
@@ -175,7 +383,8 @@ class _HeaderInfo extends StatelessWidget {
 }
 
 class _BadgeChip extends StatelessWidget {
-  final String text; const _BadgeChip({required this.text});
+  final String text;
+  const _BadgeChip({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -186,13 +395,17 @@ class _BadgeChip extends StatelessWidget {
         border: Border.all(color: const Color(0xFFDECFEE)),
         boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 6, offset: Offset(0, 3))],
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: .2)),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: .2),
+      ),
     );
   }
 }
 
 class _PricePill extends StatelessWidget {
-  final String text; const _PricePill({required this.text});
+  final String text;
+  const _PricePill({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -208,8 +421,16 @@ class _PricePill extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  final String title; final IconData icon; final Color iconColor; final List<Widget> children;
-  const _SectionCard({required this.title, required this.icon, required this.iconColor, required this.children});
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final List<Widget> children;
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.children,
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -217,7 +438,8 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 6))],
       ),
       child: Column(
@@ -239,20 +461,25 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _LineItem extends StatelessWidget {
-  final Widget leading; final String text;
+  final Widget leading;
+  final String text;
   const _LineItem({required this.leading, required this.text});
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      dense: true, minLeadingWidth: 6, contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: leading, title: Text(text, style: const TextStyle(fontSize: 16)),
+      dense: true,
+      minLeadingWidth: 6,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: leading,
+      title: Text(text, style: const TextStyle(fontSize: 16)),
       visualDensity: VisualDensity.compact,
     );
   }
 }
 
 class _PrimaryButton extends StatelessWidget {
-  final String text; final VoidCallback? onPressed;
+  final String text;
+  final VoidCallback? onPressed;
   const _PrimaryButton({required this.text, required this.onPressed});
   @override
   Widget build(BuildContext context) {
@@ -265,7 +492,9 @@ class _PrimaryButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(48)),
-            elevation: 0, backgroundColor: const Color(0xFF6C63FF), foregroundColor: Colors.white,
+            elevation: 0,
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
           ),
           child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: .2)),
         ),

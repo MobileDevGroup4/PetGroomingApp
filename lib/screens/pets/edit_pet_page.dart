@@ -96,28 +96,42 @@ class _EditPetPageState extends State<EditPetPage> {
       },
     );
   }
+Future<void> _save() async {
+  if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (_uid == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Not signed in')),
+    );
+    return;
+  }
 
-    if (_uid == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Not signed in')));
-      return;
-    }
+  final newName = _nameCtrl.text.trim();
+  final newBreed = _breedCtrl.text.trim();
+  final newAge = _selectedAge ?? widget.pet.age;
+  final newSize = _selectedSize ?? widget.pet.size;
+  final newWeight = double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
+  final newColour = _colourCtrl.text.trim();
+  final newPreferences = _preferencesCtrl.text.trim();
 
-    final newName = _nameCtrl.text.trim();
-    final newBreed = _breedCtrl.text.trim();
-    final newAge = _selectedAge ?? widget.pet.age;
-    final newSize = _selectedSize ?? widget.pet.size;
-    final newWeight =
-        double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
-    final newColour = _colourCtrl.text.trim();
-    final newPreferences = _preferencesCtrl.text.trim();
+  await PetService(_uid!).updatePet(
+    widget.pet.id,
+    name: newName,
+    breed: newBreed,
+    age: newAge,
+    size: newSize,
+    weight: newWeight,
+    colour: newColour,
+    preferences: newPreferences,
+  );
 
-    await PetService(_uid!).updatePet(
-      widget.pet.id,
+  
+  if (!mounted) return;
+
+  Navigator.pop(
+    context,
+    Pet(
+      id: widget.pet.id,
       name: newName,
       breed: newBreed,
       age: newAge,
@@ -125,7 +139,9 @@ class _EditPetPageState extends State<EditPetPage> {
       weight: newWeight,
       colour: newColour,
       preferences: newPreferences,
-    );
+    ),
+  );
+}
 
     if (_localPhotoBytes != null) {
       await _fsStorage.savePetImage(
@@ -151,56 +167,56 @@ class _EditPetPageState extends State<EditPetPage> {
     );
   }
 
-  Future<void> _delete() async {
-    if (_uid == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Not signed in')));
-      return;
-    }
 
-    // Ask for confirmation
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Pet'),
-        content: const Text(
-          'Are you sure you want to delete this pet? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+Future<void> _delete() async {
+  if (_uid == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Not signed in')),
     );
-
-    if (confirm != true) return;
-
-    try {
-      await PetService(_uid!).deletePet(widget.pet.id);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Pet deleted')));
-
-      // Pop twice: Edit → PetView → PetList
-      Navigator.pop(context); // pop EditPetPage
-      Navigator.pop(context, 'deleted'); // pop PetView
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting pet: $e')));
-    }
+    return;
   }
+
+  
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (dialogCtx) => AlertDialog(
+      title: const Text('Delete Pet'),
+      content: const Text(
+        'Are you sure you want to delete this pet? This action cannot be undone.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogCtx, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogCtx, true),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return;
+
+  try {
+    await PetService(_uid!).deletePet(widget.pet.id);
+
+    
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pet deleted')),
+    );
+    Navigator.pop(context);            // EditPetPage
+    Navigator.pop(context, 'deleted'); // PetView
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error deleting pet: $e')),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
