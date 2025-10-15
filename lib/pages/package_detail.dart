@@ -1,12 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/package.dart';
 import '../utils/package_diff.dart';
 import '../screens/date_time_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import '../models/package.dart';
-import '../utils/package_diff.dart';
 import '../repositories/packages_repository.dart';
 
 class PackageDetailPage extends StatelessWidget {
@@ -70,8 +67,16 @@ class PackageDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
-                  const Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
+                  const Positioned(
+                    top: -40,
+                    right: -30,
+                    child: _GlowCircle(size: 180, color: Colors.white70),
+                  ),
+                  const Positioned(
+                    bottom: -20,
+                    left: -10,
+                    child: _GlowCircle(size: 140, color: Colors.white54),
+                  ),
                   Positioned(
                     left: 16,
                     right: 16,
@@ -116,22 +121,16 @@ class PackageDetailPage extends StatelessWidget {
                       title: 'Highlights',
                       icon: Icons.star_rate_rounded,
                       iconColor: const Color(0xFFFFC107),
-                      children: [
-                        ...added.map(
-                          (s) => _LineItem(
-                            leading: const Icon(
-                              Icons.star_border_rounded,
-                              size: 22,
-                            ),
-                            text: s,
-                          ),
-                        ),
-                      ],
                       children: added
-                          .map((s) => _LineItem(
-                                leading: const Icon(Icons.star_border_rounded, size: 22),
-                                text: s,
-                              ))
+                          .map(
+                            (s) => _LineItem(
+                              leading: const Icon(
+                                Icons.star_border_rounded,
+                                size: 22,
+                              ),
+                              text: s,
+                            ),
+                          )
                           .toList(),
                     ),
                     const SizedBox(height: 16),
@@ -191,13 +190,13 @@ class PackageDetailPage extends StatelessWidget {
     if (!context.mounted) return;
 
     if (didSave == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Package updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Package updated')));
     } else if (didSave == false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Update failed')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Update failed')));
     }
   }
 }
@@ -209,6 +208,194 @@ class _EditPackageSheet extends StatefulWidget {
 
   @override
   State<_EditPackageSheet> createState() => _EditPackageSheetState();
+}
+
+class _EditPackageSheetState extends State<_EditPackageSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _priceCtrl;
+  late final TextEditingController _durationCtrl;
+  late final TextEditingController _badgeCtrl;
+  late final TextEditingController _descCtrl;
+  late final TextEditingController _servicesCtrl;
+  final _repo = PackagesRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.pack.name);
+    _priceCtrl = TextEditingController(text: widget.pack.priceLabel);
+    _durationCtrl = TextEditingController(
+      text: widget.pack.durationMinutes.toString(),
+    );
+    _badgeCtrl = TextEditingController(text: widget.pack.badge);
+    _descCtrl = TextEditingController(text: widget.pack.shortDescription);
+    _servicesCtrl = TextEditingController(
+      text: widget.pack.services.join('\n'),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _priceCtrl.dispose();
+    _durationCtrl.dispose();
+    _badgeCtrl.dispose();
+    _descCtrl.dispose();
+    _servicesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Edit Package', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.words,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _priceCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Price label (e.g. "50 CHF")',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _durationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                final n = int.tryParse(v ?? '');
+                if (n == null || n <= 0) return 'Enter a valid number';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _badgeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Badge (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _descCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Short description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _servicesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Included services (one per line)',
+                hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 6,
+              keyboardType: TextInputType.multiline,
+              validator: (v) {
+                final items = _linesToServices(v ?? '');
+                return items.isEmpty ? 'Add at least one service' : null;
+              },
+            ),
+
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () async {
+                      if (!_formKey.currentState!.validate()) return;
+
+                      FocusScope.of(context).unfocus();
+                      final duration = int.parse(_durationCtrl.text.trim());
+                      final services = _linesToServices(_servicesCtrl.text);
+
+                      try {
+                        await _repo.updatePackageFields(widget.pack.id, {
+                          'name': _nameCtrl.text.trim(),
+                          'priceLabel': _priceCtrl.text.trim(),
+                          'durationMinutes': duration,
+                          'badge': _badgeCtrl.text.trim(),
+                          'shortDescription': _descCtrl.text.trim(),
+                          'services': services,
+                        });
+                        if (!mounted) return;
+                        Navigator.of(context).pop(true);
+                      } catch (_) {
+                        if (!mounted) return;
+                        Navigator.of(context).pop(false);
+                      }
+                    },
+                    child: const Text('Save'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
+                      Navigator.of(context).pop(false);
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<String> _linesToServices(String raw) {
+    final lines = raw
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final seen = <String>{};
+    return [
+      for (final s in lines)
+        if (seen.add(s)) s,
+    ];
+  }
 }
 
 class _GlowCircle extends StatelessWidget {
