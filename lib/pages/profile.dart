@@ -1,22 +1,19 @@
+// lib/pages/profile.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'dart:typed_data';
 import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../widgets/pet_section.dart';
 import '../screens/booking_screen.dart';
 import '../screens/booking_selection_screen.dart';
 import '../screens/user/profile_edit.dart';
-import 'dart:typed_data';
-import '../services/storage_service.dart';
-
-final fsStorage = FirestoreStorageService();
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key, required this.theme});
 
   final ThemeData theme;
-
 
   @override
   Widget build(BuildContext context) {
@@ -59,43 +56,81 @@ class Profile extends StatelessWidget {
               );
             } else {
               // User IS logged in - show combined profile view
-              return Column(
+              return ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  const SizedBox(height: 16),
-                  FutureBuilder<Uint8List?>(
-                  future: fsStorage.loadProfileImage(uid: user.uid),
-                  builder: (context, snap) {
-                    if (snap.connectionState == ConnectionState.waiting) {
-                      return const CircleAvatar(radius: 48, child: CircularProgressIndicator(strokeWidth: 2));
-                    }
-                    if (snap.hasError) {
-                      debugPrint('avatar load error: ${snap.error}');
-                      return const CircleAvatar(radius: 48, child: Icon(Icons.person, size: 48, color: Colors.green));
-                    }
-
-                    final bytes = snap.data;
-                    debugPrint('avatar bytes length: ${bytes?.length}');
-                    final img = (bytes != null && bytes.isNotEmpty) ? MemoryImage(bytes) : null;
-
-                    return CircleAvatar(
-                      radius: 48,
-                      backgroundImage: img,
-                      child: img == null
-                          ? const Icon(Icons.person, size: 48, color: Colors.green)
-                          : null,
-                    );
-                  },
-                ),
                   const SizedBox(height: 8),
-                  Text('Welcome!', style: theme.textTheme.titleLarge),
+
+                  Center(
+                    child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      stream: FirebaseFirestore.instance
+                          .collection('profileAvatars')
+                          .doc(user.uid)
+                          .snapshots(),
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const CircleAvatar(
+                            radius: 48,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        }
+
+                        if (snap.hasError) {
+                          debugPrint('avatar stream error: ${snap.error}');
+                          return const CircleAvatar(
+                            radius: 48,
+                            child: Icon(Icons.person, size: 48, color: Colors.green),
+                          );
+                        }
+
+                        if (!snap.hasData || !snap.data!.exists) {
+                          debugPrint('avatar doc missing for uid=${user.uid}');
+                          return const CircleAvatar(
+                            radius: 48,
+                            child: Icon(Icons.person, size: 48, color: Colors.green),
+                          );
+                        }
+
+                        final data = snap.data!.data();
+                        final raw = data?['data'];
+
+                        Uint8List? bytes;
+                        if (raw is Uint8List) {
+                          bytes = raw;
+                        } else if (raw is List) {
+                          try {
+                            bytes = Uint8List.fromList(raw.cast<int>());
+                          } catch (e) {
+                            debugPrint('avatar cast error: $e');
+                          }
+                        }
+
+                        final img =
+                            (bytes != null && bytes.isNotEmpty) ? MemoryImage(bytes) : null;
+
+                        return CircleAvatar(
+                          radius: 48,
+                          backgroundImage: img,
+                          child: img == null
+                              ? const Icon(Icons.person, size: 48, color: Colors.green)
+                              : null,
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(
-                    user.email ?? 'No email',
-                    style: theme.textTheme.bodyMedium,
+
+                  Center(child: Text('Welcome!', style: theme.textTheme.titleLarge)),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      user.email ?? 'No email',
+                      style: theme.textTheme.bodyMedium,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
-                  // "Book a service" button from the feature branch
+                  // "Book a service" button
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -108,43 +143,31 @@ class Profile extends StatelessWidget {
                     icon: const Icon(Icons.calendar_today),
                     label: const Text('Book a service'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-
-                  // "Edit your profile" button 
+                  // "Edit your profile" button
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const EditProfileScreen(),
-                        ),
+                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
                       );
                     },
-                    icon: const Icon(Icons.edit),
+                    icon: const Icon(Icons.edit_outlined),
                     label: const Text('Edit your profile'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // "My Pets" section from the dev branch
-                  const Text(
-                    "My Pets",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  SizedBox(
+                    height: 360, 
+                    child: PetSection(),
                   ),
-                  const SizedBox(height: 8),
-                  Expanded(child: PetSection()),
                   const SizedBox(height: 16),
 
                   // Unified "Logout" button
@@ -153,15 +176,12 @@ class Profile extends StatelessWidget {
                     icon: const Icon(Icons.logout),
                     label: const Text('Logout'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       backgroundColor: Colors.grey[300],
                       foregroundColor: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
               );
             }
@@ -172,9 +192,9 @@ class Profile extends StatelessWidget {
   }
 
   void _navigateToLogin(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const LoginScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -186,21 +206,16 @@ class Profile extends StatelessWidget {
           content: const Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
+              onPressed: () => Navigator.of(context).pop(), 
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
                 final navigator = Navigator.of(context);
                 final messenger = ScaffoldMessenger.of(context);
-
-                navigator.pop(); // Close dialog before async gap
-
+                navigator.pop(); 
                 try {
                   await AuthService().logout();
-                  // Auth state will automatically update the UI
                 } catch (e) {
                   messenger.showSnackBar(
                     SnackBar(content: Text('Error logging out: $e')),

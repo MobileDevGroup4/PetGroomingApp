@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import '../models/package.dart';
 import '../utils/package_diff.dart';
 import '../screens/date_time_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../models/package.dart';
+import '../utils/package_diff.dart';
+import '../repositories/packages_repository.dart';
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
@@ -18,9 +23,20 @@ class PackageDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final added = addedServicesForTier(pack, allPackages);
+    final isSignedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
+
+      // Ouvre uniquement la sheet
+      floatingActionButton: isSignedIn
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit'),
+              onPressed: () => _openEditBottomSheet(context, pack),
+            )
+          : null,
+
       body: CustomScrollView(
         slivers: [
           //SliverAppBar
@@ -54,16 +70,8 @@ class PackageDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: -40,
-                    right: -30,
-                    child: _GlowCircle(size: 180, color: Colors.white70),
-                  ),
-                  Positioned(
-                    bottom: -20,
-                    left: -10,
-                    child: _GlowCircle(size: 140, color: Colors.white54),
-                  ),
+                  const Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
+                  const Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
                   Positioned(
                     left: 16,
                     right: 16,
@@ -79,6 +87,7 @@ class PackageDetailPage extends StatelessWidget {
             ),
           ),
 
+          // Body
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
@@ -102,7 +111,6 @@ class PackageDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
 
-                  // --- Highlights  ---
                   if (added.isNotEmpty) ...[
                     _SectionCard(
                       title: 'Highlights',
@@ -119,11 +127,16 @@ class PackageDetailPage extends StatelessWidget {
                           ),
                         ),
                       ],
+                      children: added
+                          .map((s) => _LineItem(
+                                leading: const Icon(Icons.star_border_rounded, size: 22),
+                                text: s,
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  // --- Included services ---
                   _SectionCard(
                     title: 'Included Services',
                     icon: Icons.check_circle_rounded,
@@ -162,6 +175,40 @@ class PackageDetailPage extends StatelessWidget {
       ),
     );
   }
+
+  /// Ouvre la sheet et affiche un SnackBar une fois fermée
+  Future<void> _openEditBottomSheet(BuildContext context, Package pack) async {
+    final bool? didSave = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => _EditPackageSheet(pack: pack),
+    );
+
+    if (!context.mounted) return;
+
+    if (didSave == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Package updated')),
+      );
+    } else if (didSave == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Update failed')),
+      );
+    }
+  }
+}
+
+/// ===== Bottom sheet autonome (Stateful) ======================================
+class _EditPackageSheet extends StatefulWidget {
+  const _EditPackageSheet({required this.pack});
+  final Package pack;
+
+  @override
+  State<_EditPackageSheet> createState() => _EditPackageSheetState();
 }
 
 class _GlowCircle extends StatelessWidget {

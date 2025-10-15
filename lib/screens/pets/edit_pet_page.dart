@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
-//import 'package:flutter_app/constants/pet_options.dart' as DropdownOptions;
 import 'package:flutter_app/constants/pet_options.dart';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_app/services/storage_service.dart';
 
 class EditPetPage extends StatefulWidget {
   final Pet pet;
@@ -23,9 +25,15 @@ class _EditPetPageState extends State<EditPetPage> {
   late final TextEditingController _preferencesCtrl;
   late int? _selectedAge;
   late String? _selectedSize;
+
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+
   final List<int> _ageOptions = PetOptions.ageYears;
   final List<String> _sizeOptions = PetOptions.sizeLabels;
+
+  final _picker = ImagePicker();
+  final _fsStorage = FirestoreStorageService();
+  Uint8List? _localPhotoBytes;
 
   @override
   void initState() {
@@ -49,25 +57,69 @@ class _EditPetPageState extends State<EditPetPage> {
     _preferencesCtrl.dispose();
     super.dispose();
   }
+
+  Future<void> _pickPhoto() async {
+    final x = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 65,
+      maxHeight: 800,
+      maxWidth: 800,
+    );
+    if (x == null) return;
+    _localPhotoBytes = await x.readAsBytes();
+    setState(() {});
+  }
+
+  Widget _photoSection(String uid, String petId) {
+    return FutureBuilder<Uint8List?>(
+      future: _fsStorage.loadPetImage(uid: uid, petId: petId),
+      builder: (context, snap) {
+        final display = _localPhotoBytes ?? snap.data;
+        final img = (display != null) ? MemoryImage(display) : null;
+        return Center(
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 48,
+                backgroundImage: img,
+                child: img == null ? const Icon(Icons.pets, size: 48) : null,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: IconButton.filledTonal(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Change photo',
+                  onPressed: _pickPhoto,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 Future<void> _save() async {
   if (!_formKey.currentState!.validate()) return;
 
-  if (_uid == null) {
+  final uid = _uid;
+  if (uid == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Not signed in')),
     );
     return;
   }
 
-  final newName = _nameCtrl.text.trim();
-  final newBreed = _breedCtrl.text.trim();
-  final newAge = _selectedAge ?? widget.pet.age;
-  final newSize = _selectedSize ?? widget.pet.size;
-  final newWeight = double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
-  final newColour = _colourCtrl.text.trim();
+  final newName        = _nameCtrl.text.trim();
+  final newBreed       = _breedCtrl.text.trim();
+  final newAge         = _selectedAge ?? widget.pet.age;
+  final newSize        = _selectedSize ?? widget.pet.size;
+  final newWeight      = double.tryParse(_weightCtrl.text.trim()) ?? widget.pet.weight;
+  final newColour      = _colourCtrl.text.trim();
   final newPreferences = _preferencesCtrl.text.trim();
 
-  await PetService(_uid!).updatePet(
+  // 1) Met à jour les champs texte
+  await PetService(uid).updatePet(
     widget.pet.id,
     name: newName,
     breed: newBreed,
@@ -78,9 +130,27 @@ Future<void> _save() async {
     preferences: newPreferences,
   );
 
-  
+  // 2) Upload la photo si l’utilisateur en a choisi une
+  if (_localPhotoBytes != null) {
+    try {
+      await _fsStorage.savePetImage(
+        uid: uid,
+        petId: widget.pet.id,
+        bytes: _localPhotoBytes!,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Photo save failed: $e')),
+      );
+      return; // on ne pop pas si l'upload échoue
+    }
+    _localPhotoBytes = null;
+  }
+
   if (!mounted) return;
 
+  // 3) Retourne le Pet mis à jour à l’écran précédent (un seul pop)
   Navigator.pop(
     context,
     Pet(
@@ -96,60 +166,57 @@ Future<void> _save() async {
   );
 }
 
+  Future<void> _delete() async {
+    if (_uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not signed in')),
+      );
+      return;
+    }
 
-
-Future<void> _delete() async {
-  if (_uid == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Not signed in')),
-    );
-    return;
-  }
-
-  
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (dialogCtx) => AlertDialog(
-      title: const Text('Delete Pet'),
-      content: const Text(
-        'Are you sure you want to delete this pet? This action cannot be undone.',
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Delete Pet'),
+        content: const Text(
+          'Are you sure you want to delete this pet? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogCtx, false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(dialogCtx, true),
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm != true) return;
-
-  try {
-    await PetService(_uid!).deletePet(widget.pet.id);
-
-    
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pet deleted')),
     );
-    Navigator.pop(context);            // EditPetPage
-    Navigator.pop(context, 'deleted'); // PetView
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error deleting pet: $e')),
-    );
+
+    if (confirm != true) return;
+
+    try {
+      await PetService(_uid!).deletePet(widget.pet.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pet deleted')),
+      );
+      Navigator.pop(context); // EditPetPage
+      Navigator.pop(context, 'deleted'); // PetView
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting pet: $e')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
+    final uid = _uid;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Pet'),
@@ -167,6 +234,7 @@ Future<void> _delete() async {
           key: _formKey,
           child: ListView(
             children: [
+              if (uid != null) _photoSection(uid, widget.pet.id),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameCtrl,
@@ -187,15 +255,11 @@ Future<void> _delete() async {
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Enter a breed' : null,
               ),
-
               const SizedBox(height: 12),
-              // AGE DROPDOWN
               DropdownButtonFormField<int>(
                 initialValue: _selectedAge,
                 items: _ageOptions
-                    .map(
-                      (a) => DropdownMenuItem<int>(value: a, child: Text('$a')),
-                    )
+                    .map((a) => DropdownMenuItem<int>(value: a, child: Text('$a')))
                     .toList(),
                 onChanged: (val) => setState(() => _selectedAge = val),
                 decoration: const InputDecoration(
@@ -204,15 +268,11 @@ Future<void> _delete() async {
                 ),
                 validator: (val) => val == null ? 'Select age' : null,
               ),
-
               const SizedBox(height: 12),
-              // SIZE DROPDOWN
               DropdownButtonFormField<String>(
                 initialValue: _selectedSize,
                 items: _sizeOptions
-                    .map(
-                      (s) => DropdownMenuItem<String>(value: s, child: Text(s)),
-                    )
+                    .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
                     .toList(),
                 onChanged: (val) => setState(() => _selectedSize = val),
                 decoration: const InputDecoration(
@@ -221,13 +281,10 @@ Future<void> _delete() async {
                 ),
                 validator: (val) => val == null ? 'Select size' : null,
               ),
-
               const SizedBox(height: 12),
               TextFormField(
                 controller: _weightCtrl,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                 ],
@@ -238,7 +295,6 @@ Future<void> _delete() async {
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Enter weight' : null,
               ),
-
               const SizedBox(height: 12),
               TextFormField(
                 controller: _colourCtrl,
@@ -249,7 +305,6 @@ Future<void> _delete() async {
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Enter colour' : null,
               ),
-
               const SizedBox(height: 12),
               TextFormField(
                 controller: _preferencesCtrl,
@@ -261,7 +316,6 @@ Future<void> _delete() async {
                   border: OutlineInputBorder(),
                 ),
               ),
-
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _save,
