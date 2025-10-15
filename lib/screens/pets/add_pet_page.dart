@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app/constants/pet_options.dart';
 import 'package:flutter_app/services/pet_service.dart';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_app/services/storage_service.dart';
 
 class AddPetPage extends StatefulWidget {
   const AddPetPage({super.key});
@@ -23,8 +26,35 @@ class _AddPetPageState extends State<AddPetPage> {
   int? _age;
   final List<int> _ageOptions = PetOptions.ageYears;
   final List<String> _sizeOptions = PetOptions.sizeLabels;
+  final _picker = ImagePicker();
+  final _fsStorage = FirestoreStorageService();
+  Uint8List? _photoBytes;
 
   InputDecoration _field(String label) => InputDecoration(labelText: label);
+
+  Widget _photoPreview() {
+    final img = (_photoBytes != null) ? MemoryImage(_photoBytes!) : null;
+    return Center(
+      child: Stack(
+        children: [
+          CircleAvatar(
+            radius: 48,
+            backgroundImage: img,
+            child: img == null ? const Icon(Icons.pets, size: 48) : null,
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: IconButton.filledTonal(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Choose photo',
+              onPressed: _pickPhoto,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -37,9 +67,10 @@ class _AddPetPageState extends State<AddPetPage> {
       return;
     }
     try {
-      await PetService(
-        uid,
-      ).addPet(_name, _breed, _age!, _size!, _weight!, _colour, _preferences);
+      final petId = await PetService(uid).addPet(_name, _breed, _age!, _size!, _weight!, _colour, _preferences);
+      if (_photoBytes != null) {
+        await _fsStorage.savePetImage(uid: uid, petId: petId, bytes: _photoBytes!);
+      }
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
@@ -48,6 +79,17 @@ class _AddPetPageState extends State<AddPetPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to add pet: $e')));
     }
+  }
+  Future<void> _pickPhoto() async {
+    final x = await _picker.pickImage(
+      source: ImageSource.gallery, 
+      imageQuality: 65,
+      maxWidth: 800,
+      maxHeight: 800
+    );
+      if (x == null) return;
+      _photoBytes = await x.readAsBytes();
+      setState(() {});
   }
 
   @override
@@ -60,6 +102,8 @@ class _AddPetPageState extends State<AddPetPage> {
           key: _formKey,
           child: ListView(
             children: [
+              _photoPreview(),                   
+              const SizedBox(height: 16),
               TextFormField(
                 decoration: _field('Name'),
                 validator: (v) =>
