@@ -6,6 +6,7 @@ import '../repositories/packages_repository.dart';
 import '../models/package.dart';
 import '../utils/package_diff.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../screens/booking_selection_screen.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -112,26 +113,16 @@ class Home extends StatelessWidget {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          try {
-            final doc = await FirebaseFirestore.instance
-                .collection('packages')
-                .doc('silver')
-                .get();
-            // ignore: use_build_context_synchronously
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('silver exists: ${doc.exists}\n${doc.data()}'),
-              ),
-            );
-          } catch (e) {
-            // ignore: use_build_context_synchronously
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Firestore error: $e')));
-          }
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BookingSelectionScreen(),
+            ),
+          );
         },
-        child: const Icon(Icons.search),
+        tooltip: 'Book Appointment',
+        child: const Icon(Icons.calendar_today),
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../screens/booking_screen.dart';
+import '../screens/booking_selection_screen.dart';
 import '../models/booking.dart';
 import '../services/booking_service.dart';
 
@@ -26,37 +26,51 @@ class _AppointmentsState extends State<Appointments> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shadowColor: Colors.transparent,
-      margin: const EdgeInsets.all(8.0),
-      child: StreamBuilder<List<Booking>>(
-        stream: _bookingsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return Scaffold(
+      body: Card(
+        shadowColor: Colors.transparent,
+        margin: const EdgeInsets.all(8.0),
+        child: StreamBuilder<List<Booking>>(
+          stream: _bookingsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
 
-          final bookings = snapshot.data ?? [];
+            final bookings = snapshot.data ?? [];
 
-          // If there are no bookings, show the placeholder text
-          if (bookings.isEmpty) {
-            return _buildNoAppointmentsView();
-          }
+            // If there are no bookings, show the placeholder text
+            if (bookings.isEmpty) {
+              return _buildNoAppointmentsView();
+            }
 
-          // If there are bookings, show them in a list
-          return ListView.builder(
-            padding: const EdgeInsets.all(8.0),
-            itemCount: bookings.length,
-            itemBuilder: (context, index) {
-              final booking = bookings[index];
-              return _buildBookingCard(booking);
-            },
+            // If there are bookings, show them in a list
+            return ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: bookings.length,
+              itemBuilder: (context, index) {
+                final booking = bookings[index];
+                return _buildBookingCard(booking);
+              },
+            );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BookingSelectionScreen(),
+            ),
           );
         },
+        tooltip: 'Book Appointment',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -104,7 +118,9 @@ class _AppointmentsState extends State<Appointments> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const BookingScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const BookingSelectionScreen(),
+                ),
               );
             },
             icon: const Icon(Icons.add),

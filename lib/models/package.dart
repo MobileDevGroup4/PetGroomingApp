@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Package {
   final String id;
   final String name;
@@ -31,6 +33,12 @@ class Package {
       durationMinutes: (data['durationMinutes'] ?? 0) as int,
       isActive: (data['isActive'] ?? true) as bool, // Default true if missing
     );
+  }
+
+  /// Creates a Package object from a FireStore DocumentSnapshot
+  factory Package.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Package.fromMap(doc.id, data);
   }
 
   /// Converts the Package object to a Firestore-friendly map
