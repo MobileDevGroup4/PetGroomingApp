@@ -3,6 +3,7 @@ import 'package:flutter_app/pages/appointments.dart';
 import 'package:flutter_app/pages/home.dart';
 import 'package:flutter_app/pages/profile.dart';
 import 'package:flutter_app/pages/store.dart';
+import 'package:flutter_app/pages/StaffDashboard.dart'; // <-- Added import
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -15,9 +16,6 @@ import 'services/auth_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // If your Firestore rules require auth to read/write, uncomment this:
-  // await FirebaseAuth.instance.signInAnonymously();
 
   runApp(const App());
 }
@@ -39,7 +37,6 @@ class App extends StatelessWidget {
           final user = snap.data;
 
           if (user == null) {
-            // guest UI, no pets provider
             return const Navigation();
           }
 
@@ -75,7 +72,7 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Tabs depend on login (Appointments only when logged in)
+        // Bottom navigation destinations
         final List<NavigationDestination> destinations = [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -91,6 +88,10 @@ class _NavigationState extends State<Navigation> {
             icon: Icon(Icons.person_outline),
             label: 'Profile',
           ),
+          const NavigationDestination(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Staff',
+          ),
         ];
 
         // Pages in the same order as destinations
@@ -99,18 +100,15 @@ class _NavigationState extends State<Navigation> {
           if (isLoggedIn) Appointments(theme: theme),
           Store(theme: theme),
           Profile(theme: theme),
+          const StaffDashboardPage(), // New Staff page
         ];
 
-        // Clamp index to avoid "selectedIndex out of range" after login/logout
-        final int safeIndex = (currentPageIndex).clamp(
+        // Clamp index to avoid errors if login/logout changes tab count
+        final int safeIndex = currentPageIndex.clamp(
           0,
           destinations.length - 1,
         );
-        /*
-        // Clamp index to avoid "selectedIndex out of range" after login/logout
-        final int safeIndex =
-            (currentPageIndex).clamp(0, destinations.length - 1) as int;
-*/
+
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
@@ -140,10 +138,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: safeIndex, // use clamped index
+            selectedIndex: safeIndex,
             destinations: destinations,
           ),
-          body: pages[safeIndex], // use clamped index
+          body: pages[safeIndex],
         );
       },
     );
@@ -169,7 +167,6 @@ class _NavigationState extends State<Navigation> {
                 try {
                   await AuthService().logout();
 
-                  // ✅ Reset tab to Home after logout to avoid invalid index
                   if (mounted) {
                     setState(() {
                       currentPageIndex = 0;
