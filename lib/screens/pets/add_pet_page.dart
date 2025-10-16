@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app/constants/pet_options.dart';
 import 'package:flutter_app/services/pet_service.dart';
-import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_app/services/storage_service.dart';
 
@@ -159,7 +158,7 @@ class _AddPetPageState extends State<AddPetPage> {
                   return null;
                 },
                 onSaved: (v) =>
-                    _weight = double.tryParse((v ?? '').replaceAll(',', '.')),
+                    _weight = double.tryParse((v ?? '').replaceAll(',', '.')), 
               ),
               TextFormField(
                 decoration: _field('Colour'),

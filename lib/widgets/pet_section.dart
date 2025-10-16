@@ -5,7 +5,6 @@ import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/screens/pets/add_pet_page.dart';
 import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:flutter_app/screens/pets/pet_view.dart';
-import 'package:flutter_app/services/storage_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PetSection extends StatelessWidget {
@@ -15,7 +14,6 @@ class PetSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final pets = context.watch<List<Pet>>();
     final uid = FirebaseAuth.instance.currentUser?.uid;    
-    final storage = FirestoreStorageService(); 
 
     if (pets.isEmpty) {
       return Center(
@@ -46,7 +44,7 @@ class PetSection extends StatelessWidget {
       children: [
         ListView.separated(
           itemCount: pets.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final pet = pets[index];
 

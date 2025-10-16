@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 import 'package:flutter_app/constants/pet_options.dart';
-import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_app/services/storage_service.dart';
 
