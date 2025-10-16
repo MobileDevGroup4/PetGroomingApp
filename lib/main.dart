@@ -5,16 +5,17 @@ import 'package:flutter_app/pages/profile.dart';
 import 'package:flutter_app/pages/store.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'package:flutter_app/models/pet.dart';
+import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
+import 'pages/admin_dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // If your Firestore rules require auth to read/write, uncomment this:
   // await FirebaseAuth.instance.signInAnonymously();
@@ -30,15 +31,36 @@ class App extends StatelessWidget {
     return MaterialApp(
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // Show loading while checking auth state
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          // Guests can browse too; Navigation adapts to auth state
-          return const Navigation();
+
+          final user = snap.data;
+          if (user == null) {
+            // guest UI, no pets provider
+            return const Navigation();
+          }
+
+          return StreamProvider<List<Pet>>.value(
+            value: PetService(user.uid).pets,
+            initialData: const [],
+            child: StreamBuilder<bool>(
+              stream: AuthService().adminRoleChanges,
+              initialData: false,
+              builder: (context, adminSnap) {
+                if (adminSnap.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final isAdmin = adminSnap.data ?? false;
+                return Navigation(isAdmin: isAdmin); // <-- pass it in
+              },
+            ),
+          );
         },
       ),
     );
@@ -46,7 +68,8 @@ class App extends StatelessWidget {
 }
 
 class Navigation extends StatefulWidget {
-  const Navigation({super.key});
+  const Navigation({super.key, this.isAdmin = false});
+  final bool isAdmin;
 
   @override
   State<Navigation> createState() => _NavigationState();
@@ -65,8 +88,8 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Tabs depend on login (Appointments only when logged in)
-        final List<NavigationDestination> destinations = [
+        // -------- Destinations (tabs) --------
+        final destinations = <NavigationDestination>[
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
@@ -77,23 +100,27 @@ class _NavigationState extends State<Navigation> {
               label: 'Appointments',
             ),
           const NavigationDestination(icon: Icon(Icons.store), label: 'Store'),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
+          if (!widget.isAdmin)
+            const NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
+          if (widget.isAdmin)
+            const NavigationDestination(
+              icon: Icon(Icons.admin_panel_settings),
+              label: 'Admin',
+            ),
         ];
 
-        // Pages in the same order as destinations
-        final List<Widget> pages = [
-          const Home(),                   // index 0
+        final pages = <Widget>[
+          const Home(),
           if (isLoggedIn) Appointments(theme: theme),
           Store(theme: theme),
-          Profile(theme: theme),
+          if (!widget.isAdmin) Profile(theme: theme),
+          if (widget.isAdmin) const AdminDashboard(),
         ];
 
-        // ✅ Clamp index to avoid "selectedIndex out of range" after login/logout
-        final int safeIndex =
-            (currentPageIndex).clamp(0, destinations.length - 1);
+        final safeIndex = currentPageIndex.clamp(0, destinations.length - 1);
 
         return Scaffold(
           appBar: AppBar(
@@ -124,10 +151,10 @@ class _NavigationState extends State<Navigation> {
               });
             },
             indicatorColor: Colors.amber,
-            selectedIndex: safeIndex,      // use clamped index
+            selectedIndex: safeIndex,
             destinations: destinations,
           ),
-          body: pages[safeIndex],          // use clamped index
+          body: pages[safeIndex],
         );
       },
     );

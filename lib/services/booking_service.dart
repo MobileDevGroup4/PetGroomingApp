@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 
 import '../models/booking.dart';
 import '../models/service.dart';
+import '../models/package.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -34,6 +35,25 @@ class BookingService {
     }
   }
 
+  // Fetch all packages from the 'packages' collection.
+  Future<List<Package>> getPackages() async {
+    try {
+      logger.d('Fetching packages from Firestore');
+      QuerySnapshot snapshot = await _firestore.collection('packages').get();
+
+      // Map the document to a list of Package objects.
+      List<Package> packages = snapshot.docs
+          .map((doc) => Package.fromFirestore(doc))
+          .toList();
+
+      logger.d('Successfully fetched ${packages.length} packages');
+      return packages;
+    } catch (e) {
+      logger.e('Error fetching packages', error: e);
+      return [];
+    }
+  }
+
   Future<List<Booking>> getExistingBookingsForDay(DateTime date) async {
     try {
       logger.d('Fetching bookings from Firestore');
@@ -59,7 +79,7 @@ class BookingService {
     }
   }
 
-  Future<void> createBooking({
+  Future<void> createServiceBooking({
     required Service service,
     required DateTime startTime,
   }) async {
@@ -69,21 +89,57 @@ class BookingService {
     }
 
     try {
-      final endTime = startTime.add(Duration(minutes: service.duration));
+      final endTime = startTime.add(
+        Duration(minutes: service.duration + 10),
+      ); // +10 buffer
 
       await _firestore.collection('bookings').add({
         'userId': user.uid,
-        'serviceId': service.id,
-        'serviceName': service.name,
-        'petId': 'p12345', // placeholder for the pet's id (TODO: add this)
+        'itemId': service.id,
+        'itemName': service.name,
+        'itemType': 'service',
+        'petId': 'p12345', // TODO: add pet selection
         'startTime': Timestamp.fromDate(startTime),
         'endTime': Timestamp.fromDate(endTime),
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      logger.d('Creating booking in Firestore');
+      logger.d('Service booking created successfully');
     } catch (e) {
-      logger.e('Error creating booking: $e');
+      logger.e('Error creating service booking: $e');
+      throw Exception('Failed to create booking.');
+    }
+  }
+
+  // Create booking for a PACKAGE
+  Future<void> createPackageBooking({
+    required Package package,
+    required DateTime startTime,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('User must be logged in to create a booking.');
+    }
+
+    try {
+      final endTime = startTime.add(
+        Duration(minutes: package.durationMinutes + 10),
+      ); // +10 buffer
+
+      await _firestore.collection('bookings').add({
+        'userId': user.uid,
+        'itemId': package.id,
+        'itemName': package.name,
+        'itemType': 'package',
+        'petId': 'p12345', // TODO: add pet selection
+        'startTime': Timestamp.fromDate(startTime),
+        'endTime': Timestamp.fromDate(endTime),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      logger.d('Package booking created successfully');
+    } catch (e) {
+      logger.e('Error creating package booking: $e');
       throw Exception('Failed to create booking.');
     }
   }
