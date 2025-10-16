@@ -177,6 +177,7 @@ class PackageDetailPage extends StatelessWidget {
 
   /// Ouvre la sheet et affiche un SnackBar une fois fermée
   Future<void> _openEditBottomSheet(BuildContext context, Package pack) async {
+    final messenger = ScaffoldMessenger.of(context);
     final bool? didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -187,16 +188,10 @@ class PackageDetailPage extends StatelessWidget {
       builder: (sheetCtx) => _EditPackageSheet(pack: pack),
     );
 
-    if (!context.mounted) return;
-
     if (didSave == true) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Package updated')));
+      messenger.showSnackBar(const SnackBar(content: Text('Package updated')));
     } else if (didSave == false) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Update failed')));
+      messenger.showSnackBar(const SnackBar(content: Text('Update failed')));
     }
   }
 }
@@ -344,6 +339,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                       if (!_formKey.currentState!.validate()) return;
 
                       FocusScope.of(context).unfocus();
+                      final navigator = Navigator.of(context);
                       final duration = int.parse(_durationCtrl.text.trim());
                       final services = _linesToServices(_servicesCtrl.text);
 
@@ -356,11 +352,9 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                           'shortDescription': _descCtrl.text.trim(),
                           'services': services,
                         });
-                        if (!mounted) return;
-                        Navigator.of(context).pop(true);
+                        navigator.pop(true);
                       } catch (_) {
-                        if (!mounted) return;
-                        Navigator.of(context).pop(false);
+                        navigator.pop(false);
                       }
                     },
                     child: const Text('Save'),

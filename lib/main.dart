@@ -11,12 +11,6 @@ import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
-import 'dart:developer';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
-import 'services/auth_service.dart';
-import 'services/pet_service.dart';
-import 'models/pet.dart';
 import 'pages/admin_dashboard.dart';
 
 Future<void> main() async {

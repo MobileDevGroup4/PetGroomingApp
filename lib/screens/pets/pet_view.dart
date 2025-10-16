@@ -3,7 +3,6 @@ import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/screens/pets/edit_pet_page.dart';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_app/services/storage_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PetView extends StatefulWidget {
@@ -16,7 +15,6 @@ class PetView extends StatefulWidget {
 
 class _PetViewState extends State<PetView> {
   late Pet _pet;
-  final _fsStorage = FirestoreStorageService();
 
   @override
   void initState() {
