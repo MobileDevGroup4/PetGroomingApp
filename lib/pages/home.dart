@@ -53,8 +53,7 @@ class Home extends StatelessWidget {
                     crossAxis = 3;
                   }
 
-                  final double ratio =
-                      constraints.maxWidth < 380 ? 0.74 : 0.78;
+                  final double ratio = constraints.maxWidth < 380 ? 0.74 : 0.78;
 
                   return CustomScrollView(
                     slivers: [
@@ -102,28 +101,22 @@ class Home extends StatelessWidget {
                                 },
                                 showAdminActions: isSignedIn,
                                 onDelete: () async {
-                                  final r = PackagesRepository();
+                                  final repo = PackagesRepository();
+                                  final messenger =
+                                      ScaffoldMessenger.of(context); // capture AVANT l'await
                                   try {
-                                    await r.deletePackage(pack.id);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              'Deleted "${pack.name}"'),
-                                        ),
-                                      );
-                                    }
+                                    await repo.deletePackage(pack.id);
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Deleted "${pack.name}"'),
+                                      ),
+                                    );
                                   } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              'Delete failed: $e'),
-                                        ),
-                                      );
-                                    }
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Delete failed: $e'),
+                                      ),
+                                    );
                                   }
                                 },
                               );
@@ -132,8 +125,7 @@ class Home extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SliverPadding(
-                          padding: EdgeInsets.only(bottom: 24)),
+                      const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
                     ],
                   );
                 },
@@ -143,7 +135,7 @@ class Home extends StatelessWidget {
         },
       ),
 
-      // FABs: + (si connecté) et calendrier
+      // ===== FABs =====
       floatingActionButton: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, authSnap) {
@@ -159,6 +151,9 @@ class Home extends StatelessWidget {
                   tooltip: 'Add Package',
                   child: const Icon(Icons.add),
                   onPressed: () async {
+                    // capture AVANT l'await
+                    final messenger = ScaffoldMessenger.of(context);
+
                     final created = await showModalBottomSheet<bool>(
                       context: context,
                       isScrollControlled: true,
@@ -169,8 +164,9 @@ class Home extends StatelessWidget {
                       ),
                       builder: (_) => const _CreatePackageSheet(),
                     );
-                    if (created == true && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+
+                    if (created == true) {
+                      messenger.showSnackBar(
                         const SnackBar(content: Text('Package created')),
                       );
                     }
@@ -186,8 +182,7 @@ class Home extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          const BookingSelectionScreen(),
+                      builder: (context) => const BookingSelectionScreen(),
                     ),
                   );
                 },
@@ -243,161 +238,156 @@ class _CreatePackageSheetState extends State<_CreatePackageSheet> {
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Create Package',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('Create Package',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
 
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.words,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _priceCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Price label (e.g. "50 CHF")',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Enter price label'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _durationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                final n = int.tryParse(v ?? '');
+                if (n == null || n <= 0) return 'Enter a valid number';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _badgeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Badge (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _descCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Short description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty)
+                      ? 'Enter a description'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _servicesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Included services (one per line)',
+                hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 6,
+              keyboardType: TextInputType.multiline,
+              validator: (v) =>
+                  _linesToList(v ?? '').isEmpty
+                      ? 'Add at least one service'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _highlightsCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Highlights (one per line)',
+                hintText: 'e.g.\nQuick dry\nSensitive shampoo',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 4,
+            ),
+
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(
+                child: FilledButton(
+                  child: const Text('Create'),
+                  onPressed: () async {
+                    if (!_formKey.currentState!.validate()) return;
+
+                    FocusScope.of(context).unfocus();
+
+                    final services   = _linesToList(_servicesCtrl.text);
+                    final highlights = _linesToList(_highlightsCtrl.text);
+                    final duration   =
+                        int.parse(_durationCtrl.text.trim());
+
+                    // capture AVANT l'await
+                    final navigator = Navigator.of(context);
+
+                    try {
+                      await _repo.createPackage(
+                        name: _nameCtrl.text.trim(),
+                        shortDescription: _descCtrl.text.trim(),
+                        services: services,
+                        priceLabel: _priceCtrl.text.trim(),
+                        badge: _badgeCtrl.text.trim(),
+                        durationMinutes: duration,
+                        highlights: highlights,
+                        visible: true,
+                      );
+                      navigator.pop(true);
+                    } catch (_) {
+                      navigator.pop(false);
+                    }
+                  },
                 ),
-                textCapitalization: TextCapitalization.words,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
               ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _priceCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Price label (e.g. "50 CHF")',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Enter price label'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _durationCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Duration (minutes)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (v) {
-                  final n = int.tryParse(v ?? '');
-                  if (n == null || n <= 0) return 'Enter a valid number';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _badgeCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Badge (optional)',
-                  border: OutlineInputBorder(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  child: const Text('Cancel'),
+                  onPressed: () => Navigator.of(context).pop(false),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _descCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Short description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Enter a description'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _servicesCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Included services (one per line)',
-                  hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 6,
-                keyboardType: TextInputType.multiline,
-                validator: (v) =>
-                    _linesToServices(v ?? '').isEmpty
-                        ? 'Add at least one service'
-                        : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _highlightsCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Highlights (one per line)',
-                  hintText: 'e.g.\nQuick dry\nSensitive shampoo',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 4,
-              ),
-
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      child: const Text('Create'),
-                      onPressed: () async {
-                        if (!_formKey.currentState!.validate()) return;
-                        FocusScope.of(context).unfocus();
-
-                        final services =
-                            _linesToServices(_servicesCtrl.text);
-                        final highlights =
-                            _linesToServices(_highlightsCtrl.text);
-                        final duration =
-                            int.parse(_durationCtrl.text.trim());
-
-                        try {
-                          await _repo.createPackage(
-                            name: _nameCtrl.text.trim(),
-                            shortDescription: _descCtrl.text.trim(),
-                            services: services,
-                            priceLabel: _priceCtrl.text.trim(),
-                            badge: _badgeCtrl.text.trim(),
-                            durationMinutes: duration,
-                            highlights: highlights,
-                            visible: true,
-                          );
-                          if (mounted) Navigator.of(context).pop(true);
-                        } catch (_) {
-                          if (mounted) Navigator.of(context).pop(false);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      child: const Text('Cancel'),
-                      onPressed: () => Navigator.of(context).pop(false),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ]),
+          ]),
         ),
       ),
     );
   }
 
-  List<String> _linesToServices(String raw) {
+  List<String> _linesToList(String raw) {
     final lines = raw
         .split('\n')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
     final seen = <String>{};
-    return [
-      for (final s in lines)
-        if (seen.add(s)) s,
-    ];
+    return [for (final s in lines) if (seen.add(s)) s];
   }
 }
