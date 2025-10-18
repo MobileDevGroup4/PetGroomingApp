@@ -7,13 +7,17 @@ class PackageCard extends StatefulWidget {
   final Package pack;
   final VoidCallback? onTap;
   final String? highlightsText;
-  
+  final bool showAdminActions;          
+  final VoidCallback? onDelete;
 
   const PackageCard({
     super.key,
     required this.pack,
     this.onTap,
     this.highlightsText,
+    this.showAdminActions = false,    
+    this.onDelete,  
+
   });
 
   @override
@@ -77,7 +81,7 @@ class _PackageCardState extends State<PackageCard> {
                     children: [
                       //  Header: badge + duration + toggle 
                      
-// ===== Header: badge + duration + (eye only when signed in) =====
+// ===== Header: badge + duration + eye + trash (admin only) =====
 Row(
   children: [
     _Badge(text: p.badge),
@@ -98,38 +102,97 @@ Row(
                     color: Colors.black87,
                   ),
             ),
-            // 👇 Eye only if signed in
+
+            // 👇 Icônes admin (œil + poubelle) visibles SEULEMENT si connecté
             StreamBuilder<User?>(
               stream: FirebaseAuth.instance.authStateChanges(),
               builder: (context, snap) {
                 if (!snap.hasData) {
-                  // signed out -> hide completely
+                  // signed out -> rien
                   return const SizedBox.shrink();
                 }
-                return IconButton(
-                  tooltip: p.isActive ? 'Disable package' : 'Enable package',
-                  icon: Icon(
-                    p.isActive ? Icons.visibility : Icons.visibility_off,
-                    size: 18,
-                  ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-                  onPressed: () async {
-                    final newValue = !p.isActive;
-                    try {
-                      await _repo.setActive(p.id, newValue);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(newValue ? 'Package enabled' : 'Package disabled')),
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error updating status: $e')),
-                      );
-                    }
-                  },
+
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ŒIL: activer/désactiver le package
+                    IconButton(
+                      tooltip: p.isActive ? 'Disable package' : 'Enable package',
+                      icon: Icon(
+                        p.isActive ? Icons.visibility : Icons.visibility_off,
+                        size: 18,
+                      ),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                      onPressed: () async {
+                        final newValue = !p.isActive;
+                        try {
+                          await _repo.setActive(p.id, newValue);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(newValue ? 'Package enabled' : 'Package disabled')),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error updating status: $e')),
+                          );
+                        }
+                      },
+                    ),
+
+                    // Poubelle: SUPPRIMER définitivement (uniquement si showAdminActions = true)
+                    if (widget.showAdminActions)
+                      IconButton(
+                        tooltip: 'Delete package',
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                        onPressed: () async {
+                          // Demande de confirmation
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Delete package?'),
+                              content: Text('This will permanently delete "${p.name}".'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            try {
+                              // Si un callback est fourni par Home, on l’utilise
+                              if (widget.onDelete != null) {
+                                widget.onDelete!.call();
+                              } else {
+                                // Fallback: supprimer directement ici via le repo
+                                await _repo.deletePackage(p.id);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Deleted "${p.name}"')),
+                                );
+                              }
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Delete failed: $e')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                  ],
                 );
               },
             ),

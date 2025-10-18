@@ -43,6 +43,11 @@ class PackagesRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+  /// Delete a package document permanently
+Future<void> deletePackage(String id) async {
+  await _col.doc(id).delete();
+}
+
 
   Future<void> updatePackage(String id, Map<String, dynamic> data) async {
     await _col.doc(id).update({
