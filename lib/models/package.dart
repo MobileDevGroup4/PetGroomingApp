@@ -8,7 +8,10 @@ class Package {
   final String priceLabel;
   final String badge;
   final int durationMinutes;
-  final bool isActive; // Added: whether the package is active or not
+  final List<String> highlights;
+
+  final bool visible;
+  final bool isActive;
 
   const Package({
     required this.id,
@@ -18,30 +21,58 @@ class Package {
     required this.priceLabel,
     required this.badge,
     required this.durationMinutes,
-    this.isActive = true, // Default: package is active
+    this.highlights = const [],
+    this.visible = true,
+    this.isActive = true,
   });
 
-  /// Creates a Package object from a Firestore document
+  static bool _toBool(dynamic v, {bool defaultValue = true}) {
+    if (v is bool) return v;
+    if (v is num) return v != 0;
+    if (v is String) {
+      final s = v.toLowerCase().trim();
+      if (s == 'true') return true;
+      if (s == 'false') return false;
+    }
+    return defaultValue;
+  }
+
+  static bool _readVisible(Map<String, dynamic> data) {
+    return _toBool(
+      data['visible'] ??
+          data['isPublic'] ??
+          data['public'] ??
+          data['active'] ??
+          data['isActive'],
+      defaultValue: true,
+    );
+  }
+
   factory Package.fromMap(String id, Map<String, dynamic> data) {
+    final v = _readVisible(data);
+    final ia = data.containsKey('isActive') ? _toBool(data['isActive']) : v;
+
     return Package(
       id: id,
       name: data['name'] ?? '',
       shortDescription: data['shortDescription'] ?? '',
-      services: List<String>.from(data['services'] ?? []),
+      services: List<String>.from(data['services'] ?? const []),
       priceLabel: data['priceLabel'] ?? '',
       badge: data['badge'] ?? '',
-      durationMinutes: (data['durationMinutes'] ?? 0) as int,
-      isActive: (data['isActive'] ?? true) as bool, // Default true if missing
+      durationMinutes: (data['durationMinutes'] ?? 0) is int
+          ? data['durationMinutes'] as int
+          : int.tryParse('${data['durationMinutes']}') ?? 0,
+      highlights: List<String>.from(data['highlights'] ?? const []),
+      visible: v,
+      isActive: ia,
     );
   }
 
-  /// Creates a Package object from a FireStore DocumentSnapshot
   factory Package.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Package.fromMap(doc.id, data);
   }
 
-  /// Converts the Package object to a Firestore-friendly map
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -50,11 +81,13 @@ class Package {
       'priceLabel': priceLabel,
       'badge': badge,
       'durationMinutes': durationMinutes,
-      'isActive': isActive,
+      'highlights': highlights,
+      'visible': visible,
+      'isPublic': visible,
+      'isActive': visible,
     };
   }
 
-  /// Returns a copy of the current package with optional modifications
   Package copyWith({
     String? name,
     String? shortDescription,
@@ -62,8 +95,11 @@ class Package {
     String? priceLabel,
     String? badge,
     int? durationMinutes,
+    List<String>? highlights,
+    bool? visible,
     bool? isActive,
   }) {
+    final newVisible = visible ?? this.visible;
     return Package(
       id: id,
       name: name ?? this.name,
@@ -72,7 +108,9 @@ class Package {
       priceLabel: priceLabel ?? this.priceLabel,
       badge: badge ?? this.badge,
       durationMinutes: durationMinutes ?? this.durationMinutes,
-      isActive: isActive ?? this.isActive,
+      highlights: highlights ?? this.highlights,
+      visible: newVisible,
+      isActive: isActive ?? newVisible,
     );
   }
 }
