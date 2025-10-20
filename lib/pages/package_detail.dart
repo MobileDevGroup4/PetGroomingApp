@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 import '../models/package.dart';
 import '../utils/package_diff.dart';
+import '../screens/date_time_screen.dart';
 import '../repositories/packages_repository.dart';
 
 class PackageDetailPage extends StatelessWidget {
@@ -18,7 +19,10 @@ class PackageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = addedServicesForTier(pack, allPackages);
+    final added = pack.highlights.isNotEmpty
+    ? pack.highlights
+    : addedServicesForTier(pack, allPackages);
+
     final isSignedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(
@@ -35,6 +39,7 @@ class PackageDetailPage extends StatelessWidget {
 
       body: CustomScrollView(
         slivers: [
+          //SliverAppBar
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -49,7 +54,10 @@ class PackageDetailPage extends StatelessWidget {
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.fadeTitle, StretchMode.zoomBackground],
+              stretchModes: const [
+                StretchMode.fadeTitle,
+                StretchMode.zoomBackground,
+              ],
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -62,8 +70,16 @@ class PackageDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Positioned(top: -40, right: -30, child: _GlowCircle(size: 180, color: Colors.white70)),
-                  const Positioned(bottom: -20, left: -10, child: _GlowCircle(size: 140, color: Colors.white54)),
+                  const Positioned(
+                    top: -40,
+                    right: -30,
+                    child: _GlowCircle(size: 180, color: Colors.white70),
+                  ),
+                  const Positioned(
+                    bottom: -20,
+                    left: -10,
+                    child: _GlowCircle(size: 140, color: Colors.white54),
+                  ),
                   Positioned(
                     left: 16,
                     right: 16,
@@ -109,10 +125,15 @@ class PackageDetailPage extends StatelessWidget {
                       icon: Icons.star_rate_rounded,
                       iconColor: const Color(0xFFFFC107),
                       children: added
-                          .map((s) => _LineItem(
-                                leading: const Icon(Icons.star_border_rounded, size: 22),
-                                text: s,
-                              ))
+                          .map(
+                            (s) => _LineItem(
+                              leading: const Icon(
+                                Icons.star_border_rounded,
+                                size: 22,
+                              ),
+                              text: s,
+                            ),
+                          )
                           .toList(),
                     ),
                     const SizedBox(height: 16),
@@ -122,16 +143,31 @@ class PackageDetailPage extends StatelessWidget {
                     title: 'Included Services',
                     icon: Icons.check_circle_rounded,
                     iconColor: Colors.teal,
-                    children: pack.services
-                        .map((s) => _LineItem(
-                              leading: const Icon(Icons.check_circle_outline, size: 22),
-                              text: s,
-                            ))
-                        .toList(),
+                    children: [
+                      ...pack.services.map(
+                        (s) => _LineItem(
+                          leading: const Icon(
+                            Icons.check_circle_outline,
+                            size: 22,
+                          ),
+                          text: s,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 
-                  const _PrimaryButton(text: 'Booking coming soon', onPressed: null),
+                  _PrimaryButton(
+                    text: 'Book Now',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DateTimeScreen(package: pack),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 28),
                 ],
               ),
@@ -144,6 +180,7 @@ class PackageDetailPage extends StatelessWidget {
 
   /// Ouvre la sheet et affiche un SnackBar une fois fermée
   Future<void> _openEditBottomSheet(BuildContext context, Package pack) async {
+    final messenger = ScaffoldMessenger.of(context);
     final bool? didSave = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -154,16 +191,10 @@ class PackageDetailPage extends StatelessWidget {
       builder: (sheetCtx) => _EditPackageSheet(pack: pack),
     );
 
-    if (!context.mounted) return;
-
     if (didSave == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Package updated')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Package updated')));
     } else if (didSave == false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Update failed')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Update failed')));
     }
   }
 }
@@ -179,27 +210,42 @@ class _EditPackageSheet extends StatefulWidget {
 
 class _EditPackageSheetState extends State<_EditPackageSheet> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl;
   late final TextEditingController _priceCtrl;
   late final TextEditingController _durationCtrl;
   late final TextEditingController _badgeCtrl;
   late final TextEditingController _descCtrl;
+  late final TextEditingController _servicesCtrl;
+   late final TextEditingController _highlightsCtrl;
   final _repo = PackagesRepository();
 
   @override
   void initState() {
     super.initState();
+    _nameCtrl = TextEditingController(text: widget.pack.name);
     _priceCtrl = TextEditingController(text: widget.pack.priceLabel);
-    _durationCtrl = TextEditingController(text: widget.pack.durationMinutes.toString());
+    _durationCtrl = TextEditingController(
+      text: widget.pack.durationMinutes.toString(),
+    );
     _badgeCtrl = TextEditingController(text: widget.pack.badge);
     _descCtrl = TextEditingController(text: widget.pack.shortDescription);
+    _servicesCtrl = TextEditingController(
+      text: widget.pack.services.join('\n'),
+    );
+    _highlightsCtrl = TextEditingController( // 👈 AJOUT
+    text: widget.pack.highlights.join('\n'),
+  );
   }
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _priceCtrl.dispose();
     _durationCtrl.dispose();
     _badgeCtrl.dispose();
     _descCtrl.dispose();
+    _servicesCtrl.dispose();
+      _highlightsCtrl.dispose();
     super.dispose();
   }
 
@@ -221,12 +267,28 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
             const SizedBox(height: 12),
 
             TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.words,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+            ),
+            const SizedBox(height: 12),
+            const SizedBox(height: 12),
+
+
+
+            TextFormField(
               controller: _priceCtrl,
               decoration: const InputDecoration(
                 labelText: 'Price label (e.g. "50 CHF")',
                 border: OutlineInputBorder(),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter price label' : null,
             ),
             const SizedBox(height: 12),
 
@@ -262,6 +324,32 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
               ),
               maxLines: 2,
             ),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _servicesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Included services (one per line)',
+                hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 6,
+              keyboardType: TextInputType.multiline,
+              validator: (v) {
+                final items = _linesToServices(v ?? '');
+                return items.isEmpty ? 'Add at least one service' : null;
+              },
+            ),
+              const SizedBox(height: 12), 
+              TextFormField(
+              controller: _highlightsCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Highlights (one per line)',
+                hintText: 'e.g.\nQuick dry\nSensitive shampoo',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 4,
+            ),
 
             const SizedBox(height: 16),
             Row(
@@ -271,24 +359,25 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                     onPressed: () async {
                       if (!_formKey.currentState!.validate()) return;
 
-                      // 1) Fermer le clavier avant toute navigation
                       FocusScope.of(context).unfocus();
+                      final navigator = Navigator.of(context);
+                      final duration = int.parse(_durationCtrl.text.trim());
+                      final services = _linesToServices(_servicesCtrl.text);
+                      final highlights = _linesToServices(_highlightsCtrl.text);
 
                       try {
-                        final duration = int.parse(_durationCtrl.text.trim());
                         await _repo.updatePackageFields(widget.pack.id, {
+                          'name': _nameCtrl.text.trim(),
                           'priceLabel': _priceCtrl.text.trim(),
                           'durationMinutes': duration,
                           'badge': _badgeCtrl.text.trim(),
                           'shortDescription': _descCtrl.text.trim(),
+                          'services': services,
+                          'highlights': highlights,
                         });
-
-                        if (!mounted) return;
-                        // 2) Pop la sheet avec SON propre contexte
-                        Navigator.of(context).pop(true); // succès
+                        navigator.pop(true);
                       } catch (_) {
-                        if (!mounted) return;
-                        Navigator.of(context).pop(false); // échec
+                        navigator.pop(false);
                       }
                     },
                     child: const Text('Save'),
@@ -299,7 +388,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                   child: OutlinedButton(
                     onPressed: () {
                       FocusScope.of(context).unfocus();
-                      Navigator.of(context).pop(false); // annuler
+                      Navigator.of(context).pop(false);
                     },
                     child: const Text('Cancel'),
                   ),
@@ -311,9 +400,21 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
       ),
     );
   }
+
+  List<String> _linesToServices(String raw) {
+    final lines = raw
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final seen = <String>{};
+    return [
+      for (final s in lines)
+        if (seen.add(s)) s,
+    ];
+  }
 }
 
-/// ===== Helpers UI ============================================================
 class _GlowCircle extends StatelessWidget {
   final double size;
   final Color color;
@@ -354,7 +455,7 @@ class _HeaderInfo extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 14,
             offset: const Offset(0, 6),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -393,11 +494,21 @@ class _BadgeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         color: Colors.white,
         border: Border.all(color: const Color(0xFFDECFEE)),
-        boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 6, offset: Offset(0, 3))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Text(
         text,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: .2),
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 12.5,
+          letterSpacing: .2,
+        ),
       ),
     );
   }
@@ -415,7 +526,10 @@ class _PricePill extends StatelessWidget {
         color: const Color(0xFFFFF3CC),
         border: Border.all(color: const Color(0xFFFFC107)),
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
     );
   }
 }
@@ -440,16 +554,29 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 6))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, color: iconColor),
-            const SizedBox(width: 8),
-            Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-          ]),
+          Row(
+            children: [
+              Icon(icon, color: iconColor),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           const Divider(height: 1),
           const SizedBox(height: 6),
@@ -491,12 +618,20 @@ class _PrimaryButton extends StatelessWidget {
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(48)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(48),
+            ),
             elevation: 0,
             backgroundColor: const Color(0xFF6C63FF),
             foregroundColor: Colors.white,
           ),
-          child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: .2)),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: .2,
+            ),
+          ),
         ),
       ),
     );

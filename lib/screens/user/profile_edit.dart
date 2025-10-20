@@ -36,7 +36,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     _profileFuture = _profileSvc.getProfile(uid!);
-    _loadAvatar(uid!);
+    _loadAvatar(uid);
   }
 
   @override
