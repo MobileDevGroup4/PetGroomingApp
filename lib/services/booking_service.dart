@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
+import 'package:intl/intl.dart';
 
 import '../models/booking.dart';
 import '../models/service.dart';
 import '../models/package.dart';
+import '../services/notification_service.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -171,5 +173,37 @@ class BookingService {
       // On error, return a stream with an empty list
       return Stream.value([]);
     }
+  }
+
+  Future<void> createServiceBookingWithNotification({
+    required Service service,
+    required DateTime startTime,
+  }) async {
+    await createServiceBooking(service: service, startTime: startTime);
+
+    final NotificationService notificationService = NotificationService();
+    final formattedDate = DateFormat('MMM d, y - h:mm a').format(startTime);
+
+    await notificationService.createNotification(
+      title: 'Appointment Booked',
+      message: 'You have booked ${service.name} for $formattedDate',
+      type: 'booking',
+    );
+  }
+
+  Future<void> createPackageBookingWithNotification({
+    required Package package,
+    required DateTime startTime,
+  }) async {
+    await createPackageBooking(package: package, startTime: startTime);
+
+    final NotificationService notificationService = NotificationService();
+    final formattedDate = DateFormat('MMM d, y - h:mm a').format(startTime);
+
+    await notificationService.createNotification(
+      title: 'Appointment Booked',
+      message: 'You have booked ${package.name} for $formattedDate',
+      type: 'booking',
+    );
   }
 }

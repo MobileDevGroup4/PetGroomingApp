@@ -12,6 +12,8 @@ import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
 import 'pages/admin_dashboard.dart';
+import '../services/notification_service.dart';
+import '../pages/notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -126,7 +128,33 @@ class _NavigationState extends State<Navigation> {
           appBar: AppBar(
             automaticallyImplyLeading: false,
             actions: [
-              if (!isLoggedIn)
+              if (isLoggedIn) ...[
+                StreamBuilder<int>(
+                  stream: NotificationService().getUnreadCount(),
+                  builder: (context, snapshot) {
+                    final unreadCount = snapshot.data ?? 0;
+                    return IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsPage(),
+                          ),
+                        );
+                      },
+                      icon: Badge(
+                        isLabelVisible: unreadCount > 0,
+                        label: Text('$unreadCount'),
+                        child: const Icon(Icons.notifications),
+                      ),
+                    );
+                  },
+                ),
+                TextButton.icon(
+                  onPressed: () => _showLogoutDialog(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                ),
+              ] else
                 TextButton.icon(
                   onPressed: () {
                     Navigator.of(context).push(
@@ -135,12 +163,6 @@ class _NavigationState extends State<Navigation> {
                   },
                   icon: const Icon(Icons.login),
                   label: const Text('Login'),
-                )
-              else
-                TextButton.icon(
-                  onPressed: () => _showLogoutDialog(context),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
                 ),
             ],
           ),
