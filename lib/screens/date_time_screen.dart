@@ -246,15 +246,17 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
 
                           // Call the appropriate booking method
                           if (isService) {
-                            await _bookingService.createServiceBooking(
-                              service: widget.service!,
-                              startTime: selectedStartTime,
-                            );
+                            await _bookingService
+                                .createServiceBookingWithNotification(
+                                  service: widget.service!,
+                                  startTime: selectedStartTime,
+                                );
                           } else {
-                            await _bookingService.createPackageBooking(
-                              package: widget.package!,
-                              startTime: selectedStartTime,
-                            );
+                            await _bookingService
+                                .createPackageBookingWithNotification(
+                                  package: widget.package!,
+                                  startTime: selectedStartTime,
+                                );
                           }
 
                           if (mounted) {
