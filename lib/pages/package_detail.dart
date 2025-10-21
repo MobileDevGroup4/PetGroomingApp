@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../models/package.dart';
 import '../utils/package_diff.dart';
-import '../screens/date_time_screen.dart';
 import '../repositories/packages_repository.dart';
+import '../screens/pet_selection_screen.dart';
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
@@ -163,7 +163,7 @@ class PackageDetailPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => DateTimeScreen(package: pack),
+                          builder: (context) => PetSelectionScreen(package: pack),
                         ),
                       );
                     },
