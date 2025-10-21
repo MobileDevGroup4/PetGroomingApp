@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'date_time_screen.dart';
 
 import '../models/service.dart';
 import '../services/booking_service.dart';
+import '../screens/pet_selection_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -78,7 +78,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DateTimeScreen(service: service),
+                        builder: (context) => PetSelectionScreen(service: service),
                       ),
                     );
                   },

@@ -84,27 +84,21 @@ class BookingService {
   Future<void> createServiceBooking({
     required Service service,
     required DateTime startTime,
+    required String petId,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      throw Exception('User must be logged in to create a booking.');
-    }
-
     try {
       final endTime = startTime.add(
         Duration(minutes: service.duration + 10),
       ); // +10 buffer
 
-      await _firestore.collection('bookings').add({
-        'userId': user.uid,
-        'itemId': service.id,
-        'itemName': service.name,
-        'itemType': 'service',
-        'petId': 'p12345', // TODO: add pet selection
-        'startTime': Timestamp.fromDate(startTime),
-        'endTime': Timestamp.fromDate(endTime),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await _createBookingRecord(
+        itemId: service.id,
+        itemName: service.name,
+        itemType: 'service',
+        petId: petId,
+        startTime: startTime,
+        endTime: endTime,
+      );
 
       logger.d('Service booking created successfully');
     } catch (e) {
@@ -117,27 +111,21 @@ class BookingService {
   Future<void> createPackageBooking({
     required Package package,
     required DateTime startTime,
+    required String petId,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      throw Exception('User must be logged in to create a booking.');
-    }
-
     try {
       final endTime = startTime.add(
         Duration(minutes: package.durationMinutes + 10),
       ); // +10 buffer
 
-      await _firestore.collection('bookings').add({
-        'userId': user.uid,
-        'itemId': package.id,
-        'itemName': package.name,
-        'itemType': 'package',
-        'petId': 'p12345', // TODO: add pet selection
-        'startTime': Timestamp.fromDate(startTime),
-        'endTime': Timestamp.fromDate(endTime),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await _createBookingRecord(
+        itemId: package.id,
+        itemName: package.name,
+        itemType: 'package',
+        petId: petId,
+        startTime: startTime,
+        endTime: endTime,
+      );
 
       logger.d('Package booking created successfully');
     } catch (e) {
@@ -175,35 +163,76 @@ class BookingService {
     }
   }
 
-  Future<void> createServiceBookingWithNotification({
-    required Service service,
+  Future<void> _createBookingRecord({
+    required String itemId,
+    required String itemName,
+    required String itemType,
+    required String petId,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('User must be logged in to create a booking.');
+    }
+
+    await _firestore.collection('bookings').add({
+      'userId': user.uid,
+      'itemId': itemId,
+      'itemName': itemName,
+      'itemType': itemType,
+      'petId': petId,
+      'startTime': Timestamp.fromDate(startTime),
+      'endTime': Timestamp.fromDate(endTime),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> _createNotificationForBooking({
+    required String itemName,
     required DateTime startTime,
   }) async {
-    await createServiceBooking(service: service, startTime: startTime);
-
     final NotificationService notificationService = NotificationService();
     final formattedDate = DateFormat('MMM d, y - h:mm a').format(startTime);
 
     await notificationService.createNotification(
       title: 'Appointment Booked',
-      message: 'You have booked ${service.name} for $formattedDate',
+      message: 'You have booked $itemName for $formattedDate',
       type: 'booking',
+    );
+  }
+
+  Future<void> createServiceBookingWithNotification({
+    required Service service,
+    required DateTime startTime,
+    required String petId,
+  }) async {
+    await createServiceBooking(
+      service: service,
+      startTime: startTime,
+      petId: petId,
+    );
+
+    await _createNotificationForBooking(
+      itemName: service.name,
+      startTime: startTime,
     );
   }
 
   Future<void> createPackageBookingWithNotification({
     required Package package,
     required DateTime startTime,
+    required String petId,
   }) async {
-    await createPackageBooking(package: package, startTime: startTime);
+    await createPackageBooking(
+      package: package,
+      startTime: startTime,
+      petId: petId,
+    );
 
-    final NotificationService notificationService = NotificationService();
-    final formattedDate = DateFormat('MMM d, y - h:mm a').format(startTime);
-
-    await notificationService.createNotification(
-      title: 'Appointment Booked',
-      message: 'You have booked ${package.name} for $formattedDate',
-      type: 'booking',
+    await _createNotificationForBooking(
+      itemName: package.name,
+      startTime: startTime,
     );
   }
 }
