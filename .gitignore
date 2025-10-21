@@ -54,3 +54,5 @@ tools\admin\serviceAccount.json
 tools
 accounts.csv
 .firebaserc
+
+key.properties
