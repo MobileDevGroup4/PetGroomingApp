@@ -5,13 +5,11 @@ class PackagesRepository {
   final CollectionReference<Map<String, dynamic>> _col =
       FirebaseFirestore.instance.collection('packages');
 
-  // --- Parse une étiquette de prix "CHF 89.90", "89,90", "120.-" -> 89.9 / 120.0
-  static double _parsePriceLabelToDouble(String label) {
-    // prend le premier nombre (avec , ou .) trouvé dans la chaîne
-    final match = RegExp(r'(\d+(?:[.,]\d+)?)').firstMatch(label);
-    if (match == null) return 0.0;
-    final raw = match.group(1)!.replaceAll(',', '.');
-    return double.tryParse(raw) ?? 0.0;
+  // --- helper local pour extraire un double du priceLabel ---
+  double? _parsePriceLabelToDouble(String label) {
+    final m = RegExp(r'([\d]+(?:[.,]\d+)?)').firstMatch(label);
+    if (m == null) return null;
+    return double.tryParse(m.group(1)!.replaceAll(',', '.'));
   }
 
   Stream<List<Package>> streamPackages({bool? onlyActive}) {
@@ -25,9 +23,7 @@ class PackagesRepository {
 
     return q.snapshots().map((snap) {
       final list = snap.docs.map((d) => Package.fromMap(d.id, d.data())).toList();
-      if (onlyActive != null) {
-        list.sort((a, b) => a.name.compareTo(b.name));
-      }
+      if (onlyActive != null) list.sort((a, b) => a.name.compareTo(b.name));
       return list;
     });
   }
@@ -41,13 +37,6 @@ class PackagesRepository {
 
   Future<void> deletePackage(String id) async {
     await _col.doc(id).delete();
-  }
-
-  Future<void> updatePackage(String id, Map<String, dynamic> data) async {
-    await _col.doc(id).update({
-      ...data,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
   }
 
   Future<void> updatePackageFields(String id, Map<String, dynamic> data) {
@@ -76,7 +65,7 @@ class PackagesRepository {
       'shortDescription': shortDescription,
       'services': services,
       'priceLabel': priceLabel,
-      'basePrice': base, // sert pour les calculs de remises
+      'basePrice': base,
       'badge': badge,
       'durationMinutes': durationMinutes,
       'highlights': highlights,
@@ -89,16 +78,28 @@ class PackagesRepository {
     return doc.id;
   }
 
-  // ---- Promo helpers ----
-  Future<void> setDiscount(String id, {required int percent}) async {
-    await updatePackageFields(id, {
-      'discountPercent': percent.clamp(0, 90),
-    });
+  // ---- Promo helpers (avec date de fin optionnelle) ----
+ Future<void> setDiscount(
+  String id, {
+  required int percent,
+  DateTime? endAt,
+}) async {
+  final map = <String, dynamic>{
+    'discountPercent': percent.clamp(0, 90),
+  };
+  if (endAt == null) {
+    map['discountEndAt'] = FieldValue.delete();
+  } else {
+    map['discountEndAt'] = Timestamp.fromDate(endAt);
   }
+  await updatePackageFields(id, map);
+}
 
   Future<void> clearDiscount(String id) async {
-    await updatePackageFields(id, {
-      'discountPercent': FieldValue.delete(),
-    });
-  }
+  await updatePackageFields(id, {
+    'discountPercent': FieldValue.delete(),
+    'discountEndAt': FieldValue.delete(),
+  });
+}
+
 }

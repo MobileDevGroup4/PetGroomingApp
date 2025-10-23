@@ -133,6 +133,7 @@ class _PackageCardState extends State<PackageCard> {
                                   return Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      // toggle visible/active
                                       IconButton(
                                         tooltip: p.isActive ? 'Disable package' : 'Enable package',
                                         icon: Icon(
@@ -159,44 +160,17 @@ class _PackageCardState extends State<PackageCard> {
                                         },
                                       ),
 
-                                      // % (rabais)
                                       IconButton(
-                                        tooltip: p.hasDiscount
-                                            ? 'Edit discount (${p.discountPercent}%)'
-                                            : 'Add discount',
-                                        icon: const Icon(Icons.percent, size: 18),
-                                        padding: EdgeInsets.zero,
-                                        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-                                        constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-                                        onPressed: () async {
-                                          final percent = await _askDiscount(
-                                            context,
-                                            initial: p.discountPercent ?? 0,
-                                          );
-                                          if (percent == null) return;
+  tooltip: p.hasDiscount
+      ? 'Edit discount (${p.discountPercent}%)'
+      : 'Add discount',
+  icon: const Icon(Icons.percent, size: 18),
+  padding: EdgeInsets.zero,
+  visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+  constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+  onPressed: () => _showDiscountDialog(p), // <-- ICI la nouvelle modale
+),
 
-                                          try {
-                                            if (percent <= 0) {
-                                              await _repo.clearDiscount(p.id);
-                                              if (!context.mounted) return;
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Discount cleared')),
-                                              );
-                                            } else {
-                                              await _repo.setDiscount(p.id, percent: percent);
-                                              if (!context.mounted) return;
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Discount set to $percent%')),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (!context.mounted) return;
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Failed to update discount: $e')),
-                                            );
-                                          }
-                                        },
-                                      ),
 
                                       // Delete
                                       IconButton(
@@ -321,49 +295,137 @@ class _PackageCardState extends State<PackageCard> {
     );
   }
 
-  Future<int?> _askDiscount(BuildContext context, {int initial = 0}) async {
-    final ctrl = TextEditingController(text: initial > 0 ? '$initial' : '');
-    final formKey = GlobalKey<FormState>();
-    return showDialog<int>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Set discount (%)'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: ctrl,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              hintText: 'Ex: 20',
-              helperText: 'Entrez 0 pour supprimer le rabais',
+  // ---------- Dialog rabais + date de fin ----------
+// ouvre la modale avec slider + date, puis écriture Firestore
+Future<void> _showDiscountDialog(Package p) async {
+  final repo = _repo;
+  int percent = p.discountPercent ?? 0;
+  DateTime? endAt = p.discountEndAt;
+
+  final result = await showDialog<({int percent, DateTime? endAt})>(
+    context: context,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            title: const Text('Set discount (%)'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(width: 44, child: Text('$percent', textAlign: TextAlign.right)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Slider(
+                        value: percent.toDouble(),
+                        min: 0, max: 90, divisions: 90,
+                        label: '$percent%',
+                        onChanged: (v) => setState(() => percent = v.round()),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('End date (optional)', style: Theme.of(ctx).textTheme.labelMedium),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.event),
+                        label: Text(
+                          endAt == null ? 'No end date' : _formatDate(endAt!),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onPressed: () async {
+                          final now = DateTime.now();
+                          final d = await showDatePicker(
+                            context: ctx,
+                            firstDate: DateTime(now.year - 1),
+                            lastDate: DateTime(now.year + 3),
+                            initialDate: endAt ?? now,
+                          );
+                          if (d == null) return;
+                          final t = await showTimePicker(
+                            context: ctx,
+                            initialTime: endAt != null
+                                ? TimeOfDay(hour: endAt!.hour, minute: endAt!.minute)
+                                : const TimeOfDay(hour: 23, minute: 59),
+                          );
+                          setState(() {
+                            endAt = DateTime(
+                              d.year, d.month, d.day,
+                              t?.hour ?? 23, t?.minute ?? 59,
+                            );
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Clear date',
+                      onPressed: () => setState(() => endAt = null),
+                      icon: const Icon(Icons.clear),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Entrez 0 pour supprimer le rabais',
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  ),
+                ),
+              ],
             ),
-            validator: (v) {
-              final n = int.tryParse((v ?? '').trim());
-              if (n == null) return 'Nombre invalide';
-              if (n < 0 || n > 90) return 'Doit être entre 0 et 90';
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              final n = int.tryParse(ctrl.text.trim())!;
-              Navigator.pop(context, n);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, (percent: percent, endAt: endAt)),
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  if (!mounted || result == null) return;
+
+  try {
+    if (result.percent <= 0) {
+      await repo.clearDiscount(p.id);
+    } else {
+      await repo.setDiscount(
+        p.id,
+        percent: result.percent,
+        endAt: result.endAt,
+      );
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Discount updated')));
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Update failed: $e')));
   }
 }
+
+// format pour le label de date
+String _formatDate(DateTime d) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
+}
+}
+
+// ---------------- UI helpers ----------------
 
 class _Chip extends StatelessWidget {
   final String text;
@@ -406,7 +468,8 @@ class _PricePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasDiscount = pack.hasDiscount && pack.basePrice != null && pack.basePrice! > 0;
+    final hasDiscount =
+        pack.hasDiscount && pack.basePrice != null && pack.basePrice! > 0;
 
     String _suffix() {
       final m = RegExp(r'^\s*([\d.,]+)\s*(.*)$').firstMatch(pack.priceLabel);
@@ -430,7 +493,7 @@ class _PricePill extends StatelessWidget {
         ),
       ),
       child: hasDiscount
-          // Ancien prix AU-DESSUS, plus petit
+          // Ancien prix au-dessus (plus petit), nouveau prix en gras + badge -X%
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
