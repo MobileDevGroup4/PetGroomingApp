@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/admin/profile_tile.dart';
+import '../../widgets/admin/profile_tile.dart';
 
 class AdminProfilesPage extends StatelessWidget {
   const AdminProfilesPage({
@@ -35,7 +35,7 @@ class AdminProfilesPage extends StatelessWidget {
 
         return ListView.separated(
           itemCount: docs.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final doc = docs[index];
             final data = doc.data();

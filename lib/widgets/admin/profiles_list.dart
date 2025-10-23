@@ -47,7 +47,7 @@ class ProfilesList extends StatelessWidget {
 
         return ListView.separated(
           itemCount: docs.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (_, i) {
             final d = docs[i];
             final data = d.data();

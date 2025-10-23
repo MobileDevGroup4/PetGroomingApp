@@ -35,7 +35,7 @@ class StaffToggle extends StatelessWidget {
         final data = snap.data!.data()!;
         final isStaff = (data['isStaff'] as bool?) ?? false;
 
-        Future<void> _toggle(bool value) async {
+        Future<void> toggle(bool value) async {
           try {
             await docRef.update({
               'isStaff': value,
@@ -61,7 +61,7 @@ class StaffToggle extends StatelessWidget {
 
         return SwitchListTile.adaptive(
           value: isStaff,
-          onChanged: _toggle,
+          onChanged: toggle,
           title: const Text('Staff'),
           subtitle: const Text('Grant staff capabilities inside the app'),
           secondary: const Icon(Icons.verified_user_outlined),

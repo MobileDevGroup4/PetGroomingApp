@@ -36,10 +36,12 @@ class PriceText extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final mainStyle = primaryStyle ??
+    final mainStyle =
+        primaryStyle ??
         theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
 
-    final strikeStyle = strikedStyle ??
+    final strikeStyle =
+        strikedStyle ??
         theme.textTheme.bodySmall?.copyWith(
           decoration: TextDecoration.lineThrough,
           color: Colors.black54,
