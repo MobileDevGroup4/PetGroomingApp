@@ -40,7 +40,9 @@ class _PackageCardState extends State<PackageCard> {
         child: Card(
           clipBehavior: Clip.hardEdge,
           elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
           child: InkWell(
             onTap: () {
               setState(() => _scale = 0.98);
@@ -85,15 +87,20 @@ class _PackageCardState extends State<PackageCard> {
                                     _Chip(
                                       text: 'Top sales',
                                       foreground: Colors.red.shade800,
-                                      border: Colors.red.withValues(alpha: 0.35),
-                                      background: Colors.red.withValues(alpha: 0.06),
+                                      border: Colors.red.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      background: Colors.red.withValues(
+                                        alpha: 0.06,
+                                      ),
                                     ),
                                   if (p.badge.trim().isNotEmpty)
                                     _Chip(
                                       text: p.badge,
                                       foreground: Colors.black87,
                                       border: Colors.black12,
-                                      background: theme.colorScheme.surface.withValues(alpha: 0.7),
+                                      background: theme.colorScheme.surface
+                                          .withValues(alpha: 0.7),
                                     ),
                                 ],
                               ),
@@ -125,9 +132,11 @@ class _PackageCardState extends State<PackageCard> {
 
                               // ===== ADMIN ACTIONS =====
                               StreamBuilder<User?>(
-                                stream: FirebaseAuth.instance.authStateChanges(),
+                                stream: FirebaseAuth.instance
+                                    .authStateChanges(),
                                 builder: (context, snap) {
-                                  if (!snap.hasData || !widget.showAdminActions) {
+                                  if (!snap.hasData ||
+                                      !widget.showAdminActions) {
                                     return const SizedBox.shrink();
                                   }
                                   return Row(
@@ -135,63 +144,124 @@ class _PackageCardState extends State<PackageCard> {
                                     children: [
                                       // toggle visible/active
                                       IconButton(
-                                        tooltip: p.isActive ? 'Disable package' : 'Enable package',
+                                        tooltip: p.isActive
+                                            ? 'Disable package'
+                                            : 'Enable package',
                                         icon: Icon(
-                                          p.isActive ? Icons.visibility : Icons.visibility_off,
+                                          p.isActive
+                                              ? Icons.visibility
+                                              : Icons.visibility_off,
                                           size: 18,
                                         ),
                                         padding: EdgeInsets.zero,
-                                        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-                                        constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -4,
+                                          vertical: -4,
+                                        ),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 28,
+                                              height: 28,
+                                            ),
                                         onPressed: () async {
                                           final newValue = !p.isActive;
                                           try {
-                                            await _repo.setActive(p.id, newValue);
+                                            await _repo.setActive(
+                                              p.id,
+                                              newValue,
+                                            );
                                             if (!context.mounted) return;
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text(newValue ? 'Package enabled' : 'Package disabled')),
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  newValue
+                                                      ? 'Package enabled'
+                                                      : 'Package disabled',
+                                                ),
+                                              ),
                                             );
                                           } catch (e) {
                                             if (!context.mounted) return;
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Error updating status: $e')),
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Error updating status: $e',
+                                                ),
+                                              ),
                                             );
                                           }
                                         },
                                       ),
 
                                       IconButton(
-  tooltip: p.hasDiscount
-      ? 'Edit discount (${p.discountPercent}%)'
-      : 'Add discount',
-  icon: const Icon(Icons.percent, size: 18),
-  padding: EdgeInsets.zero,
-  visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-  constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-  onPressed: () => _showDiscountDialog(p), // <-- ICI la nouvelle modale
-),
-
+                                        tooltip: p.hasDiscount
+                                            ? 'Edit discount (${p.discountPercent}%)'
+                                            : 'Add discount',
+                                        icon: const Icon(
+                                          Icons.percent,
+                                          size: 18,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -4,
+                                          vertical: -4,
+                                        ),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 28,
+                                              height: 28,
+                                            ),
+                                        onPressed: () => _showDiscountDialog(
+                                          p,
+                                        ), // <-- ICI la nouvelle modale
+                                      ),
 
                                       // Delete
                                       IconButton(
                                         tooltip: 'Delete package',
-                                        icon: const Icon(Icons.delete_outline, size: 18),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          size: 18,
+                                        ),
                                         padding: EdgeInsets.zero,
-                                        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-                                        constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -4,
+                                          vertical: -4,
+                                        ),
+                                        constraints:
+                                            const BoxConstraints.tightFor(
+                                              width: 28,
+                                              height: 28,
+                                            ),
                                         onPressed: () async {
                                           final confirm = await showDialog<bool>(
                                             context: context,
                                             builder: (_) => AlertDialog(
-                                              title: const Text('Delete package?'),
-                                              content: Text('This will permanently delete "${p.name}".'),
+                                              title: const Text(
+                                                'Delete package?',
+                                              ),
+                                              content: Text(
+                                                'This will permanently delete "${p.name}".',
+                                              ),
                                               actions: [
                                                 TextButton(
-                                                  onPressed: () => Navigator.pop(context, false),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
                                                   child: const Text('Cancel'),
                                                 ),
                                                 FilledButton(
-                                                  onPressed: () => Navigator.pop(context, true),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
                                                   child: const Text('Delete'),
                                                 ),
                                               ],
@@ -204,14 +274,26 @@ class _PackageCardState extends State<PackageCard> {
                                               } else {
                                                 await _repo.deletePackage(p.id);
                                                 if (!context.mounted) return;
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(content: Text('Deleted "${p.name}"')),
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Deleted "${p.name}"',
+                                                    ),
+                                                  ),
                                                 );
                                               }
                                             } catch (e) {
                                               if (!context.mounted) return;
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Delete failed: $e')),
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Delete failed: $e',
+                                                  ),
+                                                ),
                                               );
                                             }
                                           }
@@ -296,133 +378,155 @@ class _PackageCardState extends State<PackageCard> {
   }
 
   // ---------- Dialog rabais + date de fin ----------
-// ouvre la modale avec slider + date, puis écriture Firestore
-Future<void> _showDiscountDialog(Package p) async {
-  final repo = _repo;
-  int percent = p.discountPercent ?? 0;
-  DateTime? endAt = p.discountEndAt;
+  // ouvre la modale avec slider + date, puis écriture Firestore
+  Future<void> _showDiscountDialog(Package p) async {
+    final repo = _repo;
+    int percent = p.discountPercent ?? 0;
+    DateTime? endAt = p.discountEndAt;
 
-  final result = await showDialog<({int percent, DateTime? endAt})>(
-    context: context,
-    builder: (ctx) {
-      return StatefulBuilder(
-        builder: (ctx, setState) {
-          return AlertDialog(
-            title: const Text('Set discount (%)'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    SizedBox(width: 44, child: Text('$percent', textAlign: TextAlign.right)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Slider(
-                        value: percent.toDouble(),
-                        min: 0, max: 90, divisions: 90,
-                        label: '$percent%',
-                        onChanged: (v) => setState(() => percent = v.round()),
+    final result = await showDialog<({int percent, DateTime? endAt})>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            return AlertDialog(
+              title: const Text('Set discount (%)'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 44,
+                        child: Text('$percent', textAlign: TextAlign.right),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('End date (optional)', style: Theme.of(ctx).textTheme.labelMedium),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.event),
-                        label: Text(
-                          endAt == null ? 'No end date' : _formatDate(endAt!),
-                          overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Slider(
+                          value: percent.toDouble(),
+                          min: 0,
+                          max: 90,
+                          divisions: 90,
+                          label: '$percent%',
+                          onChanged: (v) => setState(() => percent = v.round()),
                         ),
-                        onPressed: () async {
-                          final now = DateTime.now();
-                          final d = await showDatePicker(
-                            context: ctx,
-                            firstDate: DateTime(now.year - 1),
-                            lastDate: DateTime(now.year + 3),
-                            initialDate: endAt ?? now,
-                          );
-                          if (d == null) return;
-                          final t = await showTimePicker(
-                            context: ctx,
-                            initialTime: endAt != null
-                                ? TimeOfDay(hour: endAt!.hour, minute: endAt!.minute)
-                                : const TimeOfDay(hour: 23, minute: 59),
-                          );
-                          setState(() {
-                            endAt = DateTime(
-                              d.year, d.month, d.day,
-                              t?.hour ?? 23, t?.minute ?? 59,
-                            );
-                          });
-                        },
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Clear date',
-                      onPressed: () => setState(() => endAt = null),
-                      icon: const Icon(Icons.clear),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Entrez 0 pour supprimer le rabais',
-                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'End date (optional)',
+                      style: Theme.of(ctx).textTheme.labelMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.event),
+                          label: Text(
+                            endAt == null ? 'No end date' : _formatDate(endAt!),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onPressed: () async {
+                            final now = DateTime.now();
+                            final d = await showDatePicker(
+                              context: ctx,
+                              firstDate: DateTime(now.year - 1),
+                              lastDate: DateTime(now.year + 3),
+                              initialDate: endAt ?? now,
+                            );
+                            if (d == null) return;
+                            final t = await showTimePicker(
+                              context: ctx,
+                              initialTime: endAt != null
+                                  ? TimeOfDay(
+                                      hour: endAt!.hour,
+                                      minute: endAt!.minute,
+                                    )
+                                  : const TimeOfDay(hour: 23, minute: 59),
+                            );
+                            setState(() {
+                              endAt = DateTime(
+                                d.year,
+                                d.month,
+                                d.day,
+                                t?.hour ?? 23,
+                                t?.minute ?? 59,
+                              );
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Clear date',
+                        onPressed: () => setState(() => endAt = null),
+                        icon: const Icon(Icons.clear),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Entrez 0 pour supprimer le rabais',
+                      style: Theme.of(
+                        ctx,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () =>
+                      Navigator.pop(ctx, (percent: percent, endAt: endAt)),
+                  child: const Text('Save'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, (percent: percent, endAt: endAt)),
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
+            );
+          },
+        );
+      },
+    );
 
-  if (!mounted || result == null) return;
+    if (!mounted || result == null) return;
 
-  try {
-    if (result.percent <= 0) {
-      await repo.clearDiscount(p.id);
-    } else {
-      await repo.setDiscount(
-        p.id,
-        percent: result.percent,
-        endAt: result.endAt,
-      );
+    try {
+      if (result.percent <= 0) {
+        await repo.clearDiscount(p.id);
+      } else {
+        await repo.setDiscount(
+          p.id,
+          percent: result.percent,
+          endAt: result.endAt,
+        );
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Discount updated')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
     }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Discount updated')));
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Update failed: $e')));
   }
-}
 
-// format pour le label de date
-String _formatDate(DateTime d) {
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
-}
+  // format pour le label de date
+  String _formatDate(DateTime d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
+  }
 }
 
 // ---------------- UI helpers ----------------
@@ -452,10 +556,10 @@ class _Chip extends StatelessWidget {
         text,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-              color: foreground,
-            ),
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: foreground,
+        ),
       ),
     );
   }
@@ -473,7 +577,11 @@ class _PricePill extends StatelessWidget {
 
     String _suffix() {
       final m = RegExp(r'^\s*([\d.,]+)\s*(.*)$').firstMatch(pack.priceLabel);
-      return (m != null ? m.group(2) : '')?.trim().replaceAll(RegExp(r'\s+'), ' ') ?? '';
+      return (m != null ? m.group(2) : '')?.trim().replaceAll(
+            RegExp(r'\s+'),
+            ' ',
+          ) ??
+          '';
     }
 
     String fmt(double v) {
@@ -524,11 +632,16 @@ class _PricePill extends StatelessWidget {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                            border: Border.all(
+                              color: Colors.red.withValues(alpha: 0.4),
+                            ),
                           ),
                           child: Text(
                             '-${pack.discountPercent}%',

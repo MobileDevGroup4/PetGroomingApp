@@ -10,7 +10,7 @@ import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
-import 'pages/admin_dashboard.dart';
+import 'pages/admin/admin_dashboard.dart';
 import '../services/notification_service.dart';
 import '../pages/notifications.dart';
 
