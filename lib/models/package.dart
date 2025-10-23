@@ -9,9 +9,13 @@ class Package {
   final String badge;
   final int durationMinutes;
   final List<String> highlights;
-
   final bool visible;
   final bool isActive;
+
+  // ---- Prix & promo ----
+  final double? basePrice;              // ex: 70.0 (déduit de priceLabel)
+  final int? discountPercent;           // ex: 20
+  final DateTime? discountEndAt;        // null = pas de fin / permanent
 
   const Package({
     required this.id,
@@ -24,8 +28,12 @@ class Package {
     this.highlights = const [],
     this.visible = true,
     this.isActive = true,
+    this.basePrice,
+    this.discountPercent,
+    this.discountEndAt,
   });
 
+  // ========== Helpers ==========
   static bool _toBool(dynamic v, {bool defaultValue = true}) {
     if (v is bool) return v;
     if (v is num) return v != 0;
@@ -35,6 +43,12 @@ class Package {
       if (s == 'false') return false;
     }
     return defaultValue;
+  }
+
+  static double? _parsePriceLabelToDouble(String label) {
+    final m = RegExp(r'([\d]+(?:[.,]\d+)?)').firstMatch(label);
+    if (m == null) return null;
+    return double.tryParse(m.group(1)!.replaceAll(',', '.'));
   }
 
   static bool _readVisible(Map<String, dynamic> data) {
@@ -48,9 +62,37 @@ class Package {
     );
   }
 
+  // ========== Getters calculés ==========
+  /// true s'il y a un pourcentage > 0 et (pas de fin) ou (encore valide)
+  bool get hasDiscount {
+    final p = discountPercent ?? 0;
+    if (p <= 0) return false;
+    if (discountEndAt == null) return true;
+    return DateTime.now().isBefore(discountEndAt!);
+  }
+
+  /// Prix remisé (si possible)
+  double? get discountedPrice {
+    if (!hasDiscount) return null;
+    final base = basePrice;
+    final percent = discountPercent ?? 0;
+    if (base == null || base <= 0) return null;
+    return (base * (1 - percent / 100)).toDouble();
+  }
+
+  // ========== Mapping ==========
   factory Package.fromMap(String id, Map<String, dynamic> data) {
     final v = _readVisible(data);
     final ia = data.containsKey('isActive') ? _toBool(data['isActive']) : v;
+
+    // discountEndAt peut être Timestamp Firestore ou String ISO
+    DateTime? endAt;
+    final rawEnd = data['discountEndAt'];
+    if (rawEnd is Timestamp) {
+      endAt = rawEnd.toDate();
+    } else if (rawEnd is String) {
+      endAt = DateTime.tryParse(rawEnd);
+    }
 
     return Package(
       id: id,
@@ -65,6 +107,10 @@ class Package {
       highlights: List<String>.from(data['highlights'] ?? const []),
       visible: v,
       isActive: ia,
+      basePrice: (data['basePrice'] as num?)?.toDouble() ??
+          _parsePriceLabelToDouble(data['priceLabel'] ?? ''),
+      discountPercent: (data['discountPercent'] as num?)?.toInt(),
+      discountEndAt: endAt,
     );
   }
 
@@ -84,7 +130,10 @@ class Package {
       'highlights': highlights,
       'visible': visible,
       'isPublic': visible,
-      'isActive': visible,
+      'isActive': isActive,
+      'basePrice': basePrice,
+      'discountPercent': discountPercent,
+      'discountEndAt': discountEndAt == null ? null : Timestamp.fromDate(discountEndAt!),
     };
   }
 
@@ -98,6 +147,9 @@ class Package {
     List<String>? highlights,
     bool? visible,
     bool? isActive,
+    double? basePrice,
+    int? discountPercent,
+    DateTime? discountEndAt,
   }) {
     final newVisible = visible ?? this.visible;
     return Package(
@@ -110,7 +162,10 @@ class Package {
       durationMinutes: durationMinutes ?? this.durationMinutes,
       highlights: highlights ?? this.highlights,
       visible: newVisible,
-      isActive: isActive ?? newVisible,
+      isActive: isActive ?? this.isActive,
+      basePrice: basePrice ?? this.basePrice,
+      discountPercent: discountPercent ?? this.discountPercent,
+      discountEndAt: discountEndAt ?? this.discountEndAt,
     );
   }
 }

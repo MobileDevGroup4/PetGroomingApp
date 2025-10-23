@@ -1,9 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/package.dart';
+import 'package:flutter_app/models/package.dart';
 
 class PackagesRepository {
   final CollectionReference<Map<String, dynamic>> _col =
       FirebaseFirestore.instance.collection('packages');
+
+  // --- helper local pour extraire un double du priceLabel ---
+  double? _parsePriceLabelToDouble(String label) {
+    final m = RegExp(r'([\d]+(?:[.,]\d+)?)').firstMatch(label);
+    if (m == null) return null;
+    return double.tryParse(m.group(1)!.replaceAll(',', '.'));
+  }
 
   Stream<List<Package>> streamPackages({bool? onlyActive}) {
     Query<Map<String, dynamic>> q = _col;
@@ -15,24 +22,8 @@ class PackagesRepository {
     }
 
     return q.snapshots().map((snap) {
-      final List<Package> list = snap.docs.map((d) {
-        final data = d.data();
-        return Package(
-          id: d.id,
-          name: (data['name'] ?? '') as String,
-          shortDescription: (data['shortDescription'] ?? '') as String,
-          services: List<String>.from(data['services'] ?? const []),
-          priceLabel: (data['priceLabel'] ?? '') as String,
-          badge: (data['badge'] ?? '') as String,
-          durationMinutes: (data['durationMinutes'] as num? ?? 0).toInt(),
-          highlights: List<String>.from(data['highlights'] ?? const []),
-          isActive: (data['isActive'] as bool?) ?? true,
-        );
-      }).toList();
-
-      if (onlyActive != null) {
-        list.sort((a, b) => a.name.compareTo(b.name));
-      }
+      final list = snap.docs.map((d) => Package.fromMap(d.id, d.data())).toList();
+      if (onlyActive != null) list.sort((a, b) => a.name.compareTo(b.name));
       return list;
     });
   }
@@ -43,17 +34,9 @@ class PackagesRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
-  /// Delete a package document permanently
-Future<void> deletePackage(String id) async {
-  await _col.doc(id).delete();
-}
 
-
-  Future<void> updatePackage(String id, Map<String, dynamic> data) async {
-    await _col.doc(id).update({
-      ...data,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+  Future<void> deletePackage(String id) async {
+    await _col.doc(id).delete();
   }
 
   Future<void> updatePackageFields(String id, Map<String, dynamic> data) {
@@ -61,6 +44,7 @@ Future<void> deletePackage(String id) async {
     data.forEach((k, v) {
       if (v != null) clean[k] = v;
     });
+    clean['updatedAt'] = FieldValue.serverTimestamp();
     return _col.doc(id).update(clean);
   }
 
@@ -74,11 +58,14 @@ Future<void> deletePackage(String id) async {
     List<String> highlights = const [],
     bool visible = true,
   }) async {
+    final base = _parsePriceLabelToDouble(priceLabel);
+
     final doc = await _col.add({
       'name': name,
       'shortDescription': shortDescription,
       'services': services,
       'priceLabel': priceLabel,
+      'basePrice': base,
       'badge': badge,
       'durationMinutes': durationMinutes,
       'highlights': highlights,
@@ -90,4 +77,29 @@ Future<void> deletePackage(String id) async {
     });
     return doc.id;
   }
+
+  // ---- Promo helpers (avec date de fin optionnelle) ----
+ Future<void> setDiscount(
+  String id, {
+  required int percent,
+  DateTime? endAt,
+}) async {
+  final map = <String, dynamic>{
+    'discountPercent': percent.clamp(0, 90),
+  };
+  if (endAt == null) {
+    map['discountEndAt'] = FieldValue.delete();
+  } else {
+    map['discountEndAt'] = Timestamp.fromDate(endAt);
+  }
+  await updatePackageFields(id, map);
+}
+
+  Future<void> clearDiscount(String id) async {
+  await updatePackageFields(id, {
+    'discountPercent': FieldValue.delete(),
+    'discountEndAt': FieldValue.delete(),
+  });
+}
+
 }
