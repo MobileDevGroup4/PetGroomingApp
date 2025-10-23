@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
 import '../../widgets/admin/profile_tile.dart';
 
 class AdminProfilesPage extends StatelessWidget {

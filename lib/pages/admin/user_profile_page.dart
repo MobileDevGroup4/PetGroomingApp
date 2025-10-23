@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'staff_toggle.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/admin/staff_toggle.dart';
 
 class UserProfilePage extends StatelessWidget {
   const UserProfilePage({
@@ -39,7 +39,7 @@ class UserProfilePage extends StatelessWidget {
         final phone = (data['phone'] as String?)?.trim() ?? '—';
         final address = (data['address'] as String?)?.trim() ?? '—';
         final photoUrl = (data['photoUrl'] as String?) ?? '';
-        final authUid = (data['uid'] as String?) ?? docId;
+        final authUid = (data['uid'] as String?) ?? docId; // fallback to docId
         final updatedAt = data['updatedAt'];
 
         return Scaffold(
@@ -109,6 +109,9 @@ class UserProfilePage extends StatelessWidget {
                   child: StaffToggle(docId: docId, collection: collection),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              _PasswordResetCard(profileEmail: email == '—' ? '' : email),
             ],
           ),
         );
@@ -170,6 +173,116 @@ class _Info extends StatelessWidget {
                     },
             )
           : null,
+    );
+  }
+}
+
+class _PasswordResetCard extends StatefulWidget {
+  const _PasswordResetCard({required this.profileEmail});
+
+  final String profileEmail;
+
+  @override
+  State<_PasswordResetCard> createState() => _PasswordResetCardState();
+}
+
+class _PasswordResetCardState extends State<_PasswordResetCard> {
+  bool _busy = false;
+
+  String get _emailToShow {
+    final me = FirebaseAuth.instance.currentUser;
+    return (widget.profileEmail.isNotEmpty
+            ? widget.profileEmail
+            : (me?.email ?? ''))
+        .trim();
+  }
+
+  Future<void> _sendResetEmail() async {
+    final email = _emailToShow;
+    if (email.isEmpty) {
+      _snack('No email on file for this user.', error: true);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      _snack('Reset email sent to $email');
+    } on FirebaseAuthException catch (e) {
+      _snack('Failed to send reset email: ${e.message ?? e.code}', error: true);
+    } catch (e) {
+      _snack('Failed to send reset email: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _snack(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: error ? Colors.red : null),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canEmail = _emailToShow.isNotEmpty;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Password', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+
+            TextFormField(
+              readOnly: true,
+              initialValue: canEmail ? _emailToShow : '—',
+              decoration: InputDecoration(
+                labelText: 'Email',
+                prefixIcon: const Icon(Icons.email_outlined),
+                helperText: canEmail ? null : 'No email on file for this user',
+                suffixIcon: IconButton(
+                  tooltip: 'Copy email',
+                  icon: const Icon(Icons.copy),
+                  onPressed: canEmail
+                      ? () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: _emailToShow),
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Email copied')),
+                            );
+                          }
+                        }
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    canEmail
+                        ? 'Send a password reset link to $_emailToShow'
+                        : 'No email on file for this user',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: _busy || !canEmail ? null : _sendResetEmail,
+                  icon: const Icon(Icons.mail_outlined),
+                  label: const Text('Send reset email'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
