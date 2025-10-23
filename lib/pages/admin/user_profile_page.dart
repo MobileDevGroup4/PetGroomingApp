@@ -111,9 +111,7 @@ class UserProfilePage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // ▼ Password section: only show email + send reset link
               _PasswordResetCard(profileEmail: email == '—' ? '' : email),
-              // ▲
             ],
           ),
         );
