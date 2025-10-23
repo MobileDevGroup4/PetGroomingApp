@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import '../services/storage_service.dart';
 // 'dart:io' removed because not used (image pick currently returns XFile)
 
 class StaffProfile extends StatefulWidget {
@@ -25,6 +28,8 @@ class _StaffProfileState extends State<StaffProfile> {
   bool _isEditing = false;
   bool _isLoading = false;
   String? _profileImageUrl;
+  Uint8List? _profileImageBytes;
+  final FirestoreStorageService _fsStorage = FirestoreStorageService();
 
   @override
   void initState() {
@@ -58,6 +63,13 @@ class _StaffProfileState extends State<StaffProfile> {
           _phoneController.text = data['phone'] ?? '';
           _profileImageUrl = data['profileImage'];
         });
+        // If no URL stored, try loading binary avatar from Firestore fallback
+        if (_profileImageUrl == null) {
+          final bytes = await _fsStorage.loadProfileImage(uid: user.uid);
+          if (bytes != null) {
+            if (mounted) setState(() => _profileImageBytes = bytes);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -114,16 +126,80 @@ class _StaffProfileState extends State<StaffProfile> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      // In a real app, you would upload this to Firebase Storage
-      // For now, we'll just show a message
+
+    if (pickedFile == null) return;
+
+    final user = _auth.currentUser;
+    if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must be logged in to upload a profile image.')),
+        );
+      }
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+
+      // Read picked file as bytes
+      final bytes = await pickedFile.readAsBytes();
+
+      // Try uploading to Firebase Storage first
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = firebase_storage.FirebaseStorage.instance
+          .ref()
+          .child('profiles')
+          .child(user.uid)
+          .child(fileName);
+
+      final uploadTask = storageRef.putData(
+        bytes,
+        firebase_storage.SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = downloadUrl;
+          _profileImageBytes = null;
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Image upload feature coming soon! Please use a URL for now.'),
+            content: Text('Profile image uploaded'),
+            backgroundColor: Colors.green,
           ),
         );
+      }
+    } catch (e) {
+      // If Storage upload fails, fall back to saving bytes in Firestore (binary storage)
+      try {
+        final bytes = await pickedFile.readAsBytes();
+        await _fsStorage.saveProfileImage(uid: user.uid, bytes: bytes);
+        if (mounted) {
+          setState(() {
+            _profileImageBytes = bytes;
+            _profileImageUrl = null;
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile image saved '),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e2) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Image upload failed: $e / $e2')),
+          );
+        }
       }
     }
   }
@@ -151,8 +227,8 @@ class _StaffProfileState extends State<StaffProfile> {
                           backgroundColor: Colors.green.shade100,
                           backgroundImage: _profileImageUrl != null
                               ? NetworkImage(_profileImageUrl!)
-                              : null,
-                          child: _profileImageUrl == null
+                              : (_profileImageBytes != null ? MemoryImage(_profileImageBytes!) : null) as ImageProvider<Object>?,
+                          child: (_profileImageUrl == null && _profileImageBytes == null)
                               ? Text(
                                   _nameController.text.isNotEmpty
                                       ? _nameController.text[0].toUpperCase()

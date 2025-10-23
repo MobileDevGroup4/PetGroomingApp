@@ -4,7 +4,6 @@ import '../widgets/booking_widgets.dart';
 import 'booking_detail_page.dart';
 import 'package:intl/intl.dart';
 
-
 class StaffDashboardPage extends StatefulWidget {
   const StaffDashboardPage({super.key});
 
@@ -15,56 +14,68 @@ class StaffDashboardPage extends StatefulWidget {
 class _StaffDashboardPageState extends State<StaffDashboardPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// 🔥 Optimized fetch with parallel queries and safe Map casting
   Future<List<Map<String, dynamic>>> _fetchBookings() async {
     try {
-      final snapshot = await _firestore.collection('bookings').orderBy('startTime', descending: true).get();
+      final snapshot = await _firestore
+          .collection('bookings')
+          .orderBy('startTime', descending: true)
+          .get();
 
-      List<Map<String, dynamic>> bookings = [];
-
-      for (var doc in snapshot.docs) {
+      final futures = snapshot.docs.map((doc) async {
         final data = doc.data();
         final userId = data['userId'] as String? ?? '';
         final petId = data['petId'] as String? ?? '';
         final itemId = data['itemId'] as String? ?? '';
 
-        // Fetch user profile
-        Map<String, dynamic> userProfile = {};
-        if (userId.isNotEmpty) {
-          final profileDoc = await _firestore.collection('profiles').doc(userId).get();
-          if (profileDoc.exists) userProfile = profileDoc.data()!;
-        }
+        final profileFuture = userId.isNotEmpty
+            ? _firestore.collection('profiles').doc(userId).get()
+            : Future.value(null);
 
-        // Fetch pet info
-        Map<String, dynamic> petData = {};
-        if (userId.isNotEmpty && petId.isNotEmpty) {
-          final petDoc = await _firestore
-              .collection('users')
-              .doc(userId)
-              .collection('pets')
-              .doc(petId)
-              .get();
-          if (petDoc.exists) petData = petDoc.data()!;
-        }
+        final petFuture = (userId.isNotEmpty && petId.isNotEmpty)
+            ? _firestore
+                .collection('users')
+                .doc(userId)
+                .collection('pets')
+                .doc(petId)
+                .get()
+            : Future.value(null);
 
-        // Fetch package info
-        Map<String, dynamic> packageData = {};
-        if (itemId.isNotEmpty) {
-          final packageDoc = await _firestore.collection('packages').doc(itemId).get();
-          if (packageDoc.exists) packageData = packageDoc.data()!;
-        }
+        final packageFuture = itemId.isNotEmpty
+            ? _firestore.collection('packages').doc(itemId).get()
+            : Future.value(null);
 
-        bookings.add({
+        final results = await Future.wait([profileFuture, petFuture, packageFuture]);
+
+        final profileDoc = results[0] as DocumentSnapshot?;
+        final petDoc = results[1] as DocumentSnapshot?;
+        final packageDoc = results[2] as DocumentSnapshot?;
+
+        // ✅ Safe Map casting
+        final userProfile = profileDoc != null && profileDoc.exists
+            ? Map<String, dynamic>.from(profileDoc.data() as Map)
+            : <String, dynamic>{};
+
+        final petDataMap = petDoc != null && petDoc.exists
+            ? Map<String, dynamic>.from(petDoc.data() as Map)
+            : <String, dynamic>{};
+
+        final packageDataMap = packageDoc != null && packageDoc.exists
+            ? Map<String, dynamic>.from(packageDoc.data() as Map)
+            : <String, dynamic>{};
+
+        return {
           'bookingId': doc.id,
-          'data': data,
+          'data': Map<String, dynamic>.from(data),
           'userProfile': userProfile,
-          'petData': petData,
-          'packageData': packageData,
-        });
-      }
+          'petData': petDataMap,
+          'packageData': packageDataMap,
+        };
+      }).toList();
 
-      return bookings;
+      return await Future.wait(futures);
     } catch (e) {
-      print('Error fetching bookings: $e');
+      debugPrint('Error fetching bookings: $e');
       return [];
     }
   }
@@ -90,53 +101,63 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No bookings found.'));
+            return const Center(
+              child: Text(
+                'No bookings found.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            );
           }
 
           final bookings = snapshot.data!;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: bookings.length,
-            itemBuilder: (context, index) {
-              final booking = bookings[index];
-              final data = booking['data'] as Map<String, dynamic>;
-              final userProfile = booking['userProfile'] as Map<String, dynamic>;
-              final petData = booking['petData'] as Map<String, dynamic>;
-              final packageData = booking['packageData'] as Map<String, dynamic>;
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {}); // Reload bookings
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: bookings.length,
+              itemBuilder: (context, index) {
+                final booking = bookings[index];
+                final data = booking['data'] as Map<String, dynamic>;
+                final userProfile = booking['userProfile'] as Map<String, dynamic>;
+                final petData = booking['petData'] as Map<String, dynamic>;
+                final packageData = booking['packageData'] as Map<String, dynamic>;
 
-              final userName = userProfile['name']?.toString() ?? 'Unknown';
-              final petName = petData['name']?.toString() ?? 'Unknown';
+                final userName = userProfile['name']?.toString() ?? 'Unknown';
+                final petName = petData['name']?.toString() ?? 'Unknown';
+                final start = data['startTime'] as Timestamp?;
+                final end = data['endTime'] as Timestamp?;
 
-              final start = data['startTime'] as Timestamp?;
-              final end = data['endTime'] as Timestamp?;
-
-              return BookingCard(
-                userName: userName,
-                petName: petName,
-                serviceName: packageData['name']?.toString() ?? 'Unknown',
-                startTime: start ?? Timestamp.now(),
-                endTime: end ?? Timestamp.now(),
-                formatDate: _formatDate,
-                formatTime: _formatTime,
-                calculateDuration: _duration,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BookingDetailPage(
-                      data: data,
-                      bookingId: booking['bookingId'] as String,
-                      userName: userName,
-                      petName: petName,
-                      userId: data['userId'] ?? '',
-                      petId: data['petId'] ?? '',
-                      petData: petData,
+                return BookingCard(
+                  userName: userName,
+                  petName: petName,
+                  serviceName: packageData['name']?.toString() ?? 'Unknown',
+                  startTime: start ?? Timestamp.now(),
+                  endTime: end ?? Timestamp.now(),
+                  formatDate: _formatDate,
+                  formatTime: _formatTime,
+                  calculateDuration: _duration,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingDetailPage(
+                        data: data,
+                        bookingId: booking['bookingId'] as String,
+                        userName: userName,
+                        petName: petName,
+                        userId: data['userId'] ?? '',
+                        petId: data['petId'] ?? '',
+                        petData: petData,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
