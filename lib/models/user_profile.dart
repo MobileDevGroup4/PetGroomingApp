@@ -12,7 +12,7 @@ class UserProfile {
     required this.phone,
     required this.address,
     this.photoUrl,
-    this.isStaff,
+    this.isStaff = false,
   });
 
   UserProfile copyWith({
