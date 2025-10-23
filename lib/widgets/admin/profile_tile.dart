@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'user_profile_page.dart';
+import '../../pages/admin/user_profile_page.dart';
 
 class ProfileTile extends StatelessWidget {
   const ProfileTile({

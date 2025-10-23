@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../repositories/profiles_repository.dart'; // adjust path if needed
+import '../../../repositories/profiles_repository.dart';
 import 'admin_profiles_page.dart';
-import 'register_staff_page.dart'; // <-- new page that hosts the form widget
+import 'register_staff_page.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
