@@ -3,16 +3,16 @@ import 'package:flutter_app/pages/appointments.dart';
 import 'package:flutter_app/pages/home.dart';
 import 'package:flutter_app/pages/profile.dart';
 import 'package:flutter_app/pages/store.dart';
-import 'package:flutter_app/pages/StaffDashboard.dart';
+import 'package:flutter_app/pages/StaffNavigation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
-import 'pages/admin_dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,32 +41,57 @@ class App extends StatelessWidget {
             return const Navigation();
           }
 
-          return StreamProvider<List<Pet>>.value(
-            value: PetService(user.uid).pets,
-            initialData: const [],
-            child: StreamBuilder<bool>(
-              stream: AuthService().adminRoleChanges,
-              initialData: false,
-              builder: (context, adminSnap) {
-                if (adminSnap.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final isAdmin = adminSnap.data ?? false;
-                return Navigation(isAdmin: isAdmin);
-              },
-            ),
+          // Check if user is staff
+          return FutureBuilder<bool>(
+            future: _checkIfStaff(user.uid),
+            builder: (context, staffSnapshot) {
+              if (staffSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final isStaff = staffSnapshot.data ?? false;
+
+              if (isStaff) {
+                // Staff users get their own dedicated navigation
+                return const StaffNavigation();
+              }
+
+              // Regular users get normal navigation with pets
+              return StreamProvider<List<Pet>>.value(
+                value: PetService(user.uid).pets,
+                initialData: const [],
+                child: const Navigation(),
+              );
+            },
           );
         },
       ),
     );
   }
+
+  Future<bool> _checkIfStaff(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data['isStaff'] != null) {
+          return data['isStaff'] as bool;
+        }
+      }
+    } catch (e) {
+      print('Error checking staff status: $e');
+    }
+    return false;
+  }
 }
 
 class Navigation extends StatefulWidget {
-  const Navigation({super.key, this.isAdmin = false});
-  final bool isAdmin;
+  const Navigation({super.key});
 
   @override
   State<Navigation> createState() => _NavigationState();
@@ -85,7 +110,7 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Bottom navigation destinations
+        // Regular user navigation (NO STAFF OPTION)
         final List<NavigationDestination> destinations = [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -101,10 +126,6 @@ class _NavigationState extends State<Navigation> {
             icon: Icon(Icons.person_outline),
             label: 'Profile',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.admin_panel_settings),
-            label: 'Staff',
-          ),
         ];
 
         final pages = <Widget>[
@@ -112,7 +133,6 @@ class _NavigationState extends State<Navigation> {
           if (isLoggedIn) Appointments(theme: theme),
           Store(theme: theme),
           Profile(theme: theme),
-          const StaffDashboardPage(),
         ];
 
         // Clamp index to avoid errors if login/logout changes tab count

@@ -84,10 +84,6 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Staff Dashboard'),
-        backgroundColor: Colors.green,
-      ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchBookings(),
         builder: (context, snapshot) {
@@ -112,7 +108,6 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
 
               final userName = userProfile['name']?.toString() ?? 'Unknown';
               final petName = petData['name']?.toString() ?? 'Unknown';
-              final services = (packageData['services'] as List<dynamic>? ?? []).join(', ');
 
               final start = data['startTime'] as Timestamp?;
               final end = data['endTime'] as Timestamp?;

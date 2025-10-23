@@ -3,6 +3,8 @@ import '../../services/auth_service.dart';
 import '../../utils/validators.dart';
 import 'registration_screen.dart';
 import 'password_reset_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../pages/StaffNavigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,6 +29,18 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Helper function to check if a user is staff
+  Future<bool> checkIfStaff(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('profiles').doc(uid).get();
+    if (doc.exists) {
+      final data = doc.data();
+      if (data != null && data['isStaff'] != null) {
+        return data['isStaff'] as bool;
+      }
+    }
+    return false;
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -43,17 +57,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login successful!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        final uid = _authService.currentUser!.uid;
+        final isStaff = await checkIfStaff(uid);
 
-        // Navigate back to main app
-        Navigator.of(context).pop();
+        // Navigate to the correct dashboard
+        if (isStaff) {
+          // Staff users get their own dedicated navigation
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const StaffNavigation()),
+          );
+        } else {
+          // Regular users go back to main navigation (closes login screen)
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -82,21 +98,14 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 48),
-
-              // App logo or title (placeholder)
               const Icon(Icons.pets, size: 80, color: Colors.amber),
-
               const SizedBox(height: 16),
-
               const Text(
                 'Pet Grooming',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 48),
-
-              // Email field
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -107,10 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 validator: validateEmail,
               ),
-
               const SizedBox(height: 16),
-
-              // Password field
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
@@ -119,9 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
+                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -138,10 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   return null;
                 },
               ),
-
               const SizedBox(height: 8),
-
-              // Forgot password link
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -155,10 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text('Forgot Password?'),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Login button
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
@@ -172,10 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       )
                     : const Text('Login', style: TextStyle(fontSize: 16)),
               ),
-
               const SizedBox(height: 24),
-
-              // Don't have account link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

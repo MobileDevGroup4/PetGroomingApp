@@ -10,7 +10,7 @@ class BookingCard extends StatelessWidget {
   final String Function(Timestamp) formatDate;
   final String Function(Timestamp) formatTime;
   final String Function(Timestamp, Timestamp) calculateDuration;
-  final VoidCallback? onTap; // ✅ Tap callback
+  final VoidCallback? onTap;
 
   const BookingCard({
     super.key,
@@ -25,10 +25,16 @@ class BookingCard extends StatelessWidget {
     this.onTap,
   });
 
+  // Helper method to safely get initials
+  String _getInitial(String name) {
+    if (name.isEmpty) return '?';
+    return name[0].toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap, // ✅ Tap triggers navigation
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
@@ -53,7 +59,7 @@ class BookingCard extends StatelessWidget {
                   radius: 20,
                   backgroundColor: const Color(0xFFE8F5E9),
                   child: Text(
-                    userName[0].toUpperCase(),
+                    _getInitial(userName),
                     style: const TextStyle(
                         color: Color(0xFF4CAF50),
                         fontWeight: FontWeight.bold,
@@ -64,7 +70,7 @@ class BookingCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(userName,
+                    Text(userName.isEmpty ? 'Unknown User' : userName,
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w600)),
                     Text(formatDate(startTime),
@@ -74,7 +80,7 @@ class BookingCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(serviceName,
+            Text(serviceName.isEmpty ? 'Unknown Service' : serviceName,
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black54)),
             const SizedBox(height: 12),
@@ -93,7 +99,7 @@ class BookingCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text('Duration: ${calculateDuration(startTime, endTime)}'),
-            Text('Pet: $petName'),
+            Text('Pet: ${petName.isEmpty ? 'Unknown Pet' : petName}'),
           ],
         ),
       ),
