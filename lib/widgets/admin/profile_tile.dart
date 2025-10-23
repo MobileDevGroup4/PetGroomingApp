@@ -1,30 +1,60 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'staff_toggle.dart';
+import 'user_profile_page.dart';
 
 class ProfileTile extends StatelessWidget {
-  final QueryDocumentSnapshot<Map<String, dynamic>> doc;
-  const ProfileTile({super.key, required this.doc});
+  const ProfileTile({
+    super.key,
+    required this.docId,
+    required this.uid,
+    required this.name,
+    required this.email,
+    required this.photoUrl,
+    this.collection = 'users',
+  });
+
+  final String docId;
+  final String uid;
+  final String name;
+  final String email;
+  final String photoUrl;
+  final String collection;
 
   @override
   Widget build(BuildContext context) {
-    final d = doc.data();
-    final name = (d['name'] as String?)?.trim();
-    final email = (d['email'] as String?)?.trim();
-    final uid = (d['uid'] as String?) ?? '—';
-    final isStaff = (d['isStaff'] as bool?) ?? false;
-
     return ListTile(
-      visualDensity: VisualDensity.compact,
-      title: Text(
-        name?.isNotEmpty == true
-            ? name!
-            : (email?.isNotEmpty == true ? email! : 'Unnamed user'),
+      leading: CircleAvatar(
+        radius: 24,
+        backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+        child: photoUrl.isEmpty
+            ? Text(
+                _initials(name),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: Colors.white),
+              )
+            : null,
       ),
-      subtitle: Text(
-        [if (email != null && email.isNotEmpty) email, 'UID: $uid'].join('\n'),
-      ),
-      trailing: StaffToggle(docId: doc.id, initialValue: isStaff),
+      title: Text(name.isEmpty ? '—' : name),
+      subtitle: Text(email),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                UserProfilePage(docId: docId, collection: collection),
+          ),
+        );
+      },
     );
+  }
+
+  static String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    return (parts.first[0] + (parts.length > 1 ? parts[1][0] : ''))
+        .toUpperCase();
   }
 }

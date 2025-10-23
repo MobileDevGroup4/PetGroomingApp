@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/pages/appointments.dart';
 import 'package:flutter_app/pages/home.dart';
 import 'package:flutter_app/pages/profile.dart';
-import 'package:flutter_app/pages/store.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -18,10 +17,6 @@ import '../pages/notifications.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // If your Firestore rules require auth to read/write, uncomment this:
-  // await FirebaseAuth.instance.signInAnonymously();
-
   runApp(const App());
 }
 
@@ -59,7 +54,7 @@ class App extends StatelessWidget {
                   );
                 }
                 final isAdmin = adminSnap.data ?? false;
-                return Navigation(isAdmin: isAdmin); // <-- pass it in
+                return Navigation(isAdmin: isAdmin);
               },
             ),
           );
@@ -90,7 +85,6 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // -------- Destinations (tabs) --------
         final destinations = <NavigationDestination>[
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -101,7 +95,7 @@ class _NavigationState extends State<Navigation> {
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
             ),
-          const NavigationDestination(icon: Icon(Icons.store), label: 'Store'),
+          // REMOVED: Store tab
           if (!widget.isAdmin)
             const NavigationDestination(
               icon: Icon(Icons.person_outline),
@@ -117,7 +111,7 @@ class _NavigationState extends State<Navigation> {
         final pages = <Widget>[
           const Home(),
           if (isLoggedIn) Appointments(theme: theme),
-          Store(theme: theme),
+          // REMOVED: Store(theme: theme),
           if (!widget.isAdmin) Profile(theme: theme),
           if (widget.isAdmin) const AdminDashboard(),
         ];
@@ -202,7 +196,7 @@ class _NavigationState extends State<Navigation> {
                 try {
                   await AuthService().logout();
 
-                  // ✅ Reset tab to Home after logout to avoid invalid index
+                  // Reset tab to Home after logout to avoid invalid index
                   if (mounted) {
                     setState(() {
                       currentPageIndex = 0;

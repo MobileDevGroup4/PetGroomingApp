@@ -5,8 +5,14 @@ import 'profile_tile.dart';
 class ProfilesList extends StatelessWidget {
   final Stream<QuerySnapshot<Map<String, dynamic>>> stream;
   final String search;
+  final String collection;
 
-  const ProfilesList({super.key, required this.stream, required this.search});
+  const ProfilesList({
+    super.key,
+    required this.stream,
+    required this.search,
+    this.collection = 'users',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +27,10 @@ class ProfilesList extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        var docs = snap.data?.docs ?? const [];
+        List<QueryDocumentSnapshot<Map<String, dynamic>>> docs =
+            snap.data?.docs.toList() ??
+            <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+
         if (search.isNotEmpty) {
           final q = search.toLowerCase();
           docs = docs.where((d) {
@@ -39,7 +48,24 @@ class ProfilesList extends StatelessWidget {
         return ListView.separated(
           itemCount: docs.length,
           separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (_, i) => ProfileTile(doc: docs[i]),
+          itemBuilder: (_, i) {
+            final d = docs[i];
+            final data = d.data();
+            final docId = d.id;
+            final uid = (data['uid'] as String?) ?? docId;
+            final name = (data['name'] as String?)?.trim() ?? '—';
+            final email = (data['email'] as String?)?.trim() ?? '';
+            final photoUrl = (data['photoUrl'] as String?) ?? '';
+
+            return ProfileTile(
+              docId: docId,
+              uid: uid,
+              name: name,
+              email: email,
+              photoUrl: photoUrl,
+              collection: collection,
+            );
+          },
         );
       },
     );
