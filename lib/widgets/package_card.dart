@@ -482,66 +482,77 @@ class _PricePill extends StatelessWidget {
       return sfx.isEmpty ? value : '$value $sfx';
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFC107).withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(
-          color: const Color(0xFFFFC107).withValues(alpha: 0.6),
-          width: 1,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFC107).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: const Color(0xFFFFC107).withValues(alpha: 0.6),
+            width: 1,
+          ),
         ),
-      ),
-      child: hasDiscount
-          // Ancien prix au-dessus (plus petit), nouveau prix en gras + badge -X%
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  fmt(pack.basePrice!),
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    decoration: TextDecoration.lineThrough,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      fmt(pack.discountedPrice!),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+        child: hasDiscount
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    fmt(pack.basePrice!),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      decoration: TextDecoration.lineThrough,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
-                      ),
-                      child: Text(
-                        '-${pack.discountPercent}%',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.red.shade800,
-                          fontWeight: FontWeight.w700,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          fmt(pack.discountedPrice!),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            '-${pack.discountPercent}%',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.red.shade800,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : Text(
+                pack.priceLabel,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
-              ],
-            )
-          : Text(
-              pack.priceLabel,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
+      ),
     );
   }
 }
