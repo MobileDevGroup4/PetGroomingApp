@@ -1,66 +1,73 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../repositories/profiles_repository.dart';
 
-class StaffToggle extends StatefulWidget {
-  final String docId;
-  final bool initialValue;
+class StaffToggle extends StatelessWidget {
   const StaffToggle({
     super.key,
     required this.docId,
-    required this.initialValue,
+    this.collection = 'users',
   });
 
-  @override
-  State<StaffToggle> createState() => _StaffToggleState();
-}
-
-class _StaffToggleState extends State<StaffToggle> {
-  final _repo = const ProfilesRepository();
-  late bool _value = widget.initialValue;
-  bool _saving = false;
-
-  Future<void> _update(bool v) async {
-    setState(() {
-      _value = v;
-      _saving = true;
-    });
-    try {
-      await _repo.updateIsStaff(docId: widget.docId, isStaff: v);
-    } catch (e) {
-      setState(() => _value = !v);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update role: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
+  final String docId;
+  final String collection;
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: _saving,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            _value ? 'Staff' : 'Customer',
-            overflow: TextOverflow.fade,
-            softWrap: false,
-          ),
-          const SizedBox(width: 6),
-          Switch(value: _value, onChanged: _update),
-          if (_saving) const SizedBox(width: 6),
-          if (_saving)
-            const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-        ],
-      ),
+    final docRef = FirebaseFirestore.instance.collection(collection).doc(docId);
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: docRef.snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const ListTile(
+            leading: Icon(Icons.verified_user_outlined),
+            title: Text('Staff'),
+            subtitle: Text('Loading…'),
+          );
+        }
+        if (!snap.hasData || !snap.data!.exists) {
+          return const ListTile(
+            leading: Icon(Icons.verified_user_outlined),
+            title: Text('Staff'),
+            subtitle: Text('User not found'),
+          );
+        }
+        final data = snap.data!.data()!;
+        final isStaff = (data['isStaff'] as bool?) ?? false;
+
+        Future<void> _toggle(bool value) async {
+          try {
+            await docRef.update({
+              'isStaff': value,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    value ? 'Marked as staff' : 'Removed staff status',
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+            }
+          }
+        }
+
+        return SwitchListTile.adaptive(
+          value: isStaff,
+          onChanged: _toggle,
+          title: const Text('Staff'),
+          subtitle: const Text('Grant staff capabilities inside the app'),
+          secondary: const Icon(Icons.verified_user_outlined),
+          contentPadding: const EdgeInsets.only(left: 8, right: 12),
+        );
+      },
     );
   }
 }

@@ -1,58 +1,61 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../repositories/profiles_repository.dart';
-import '../widgets/admin/profiles_list.dart';
 
-class AdminProfilesPage extends StatefulWidget {
-  const AdminProfilesPage({super.key});
+import '../widgets/admin/profile_tile.dart';
 
-  @override
-  State<AdminProfilesPage> createState() => _AdminProfilesPageState();
-}
+class AdminProfilesPage extends StatelessWidget {
+  const AdminProfilesPage({
+    super.key,
+    required this.stream,
+    this.search = '',
+    this.collection = 'users',
+  });
 
-class _AdminProfilesPageState extends State<AdminProfilesPage> {
-  final _repo = const ProfilesRepository();
-  String _search = '';
-  bool _onlyStaff = false;
+  final Stream<QuerySnapshot<Map<String, dynamic>>> stream;
+  final String search;
+  final String collection;
 
   @override
   Widget build(BuildContext context) {
-    final stream = _repo.streamProfiles(onlyStaff: _onlyStaff);
+    final q = search.trim().toLowerCase();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin - User Profiles'),
-        actions: [
-          Row(
-            children: [
-              const Text('Only staff'),
-              Switch(
-                value: _onlyStaff,
-                onChanged: (v) => setState(() => _onlyStaff = v),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search name or email…',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (v) => setState(() => _search = v.trim()),
-            ),
-          ),
-          Expanded(
-            child: ProfilesList(stream: stream, search: _search),
-          ),
-        ],
-      ),
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final all = snapshot.data?.docs ?? const [];
+        final docs = all.where((doc) {
+          final data = doc.data();
+          final name = (data['name'] as String?)?.toLowerCase() ?? '';
+          final email = (data['email'] as String?)?.toLowerCase() ?? '';
+          return q.isEmpty || name.contains(q) || email.contains(q);
+        }).toList();
+
+        return ListView.separated(
+          itemCount: docs.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data();
+            final docId = doc.id;
+            final uid = (data['uid'] as String?) ?? docId;
+            final name = (data['name'] as String?)?.trim() ?? '—';
+            final email = (data['email'] as String?)?.trim() ?? '';
+            final photoUrl = (data['photoUrl'] as String?) ?? '';
+
+            return ProfileTile(
+              docId: docId,
+              uid: uid,
+              name: name,
+              email: email,
+              photoUrl: photoUrl,
+              collection: collection,
+            );
+          },
+        );
+      },
     );
   }
 }

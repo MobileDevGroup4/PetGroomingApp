@@ -36,7 +36,6 @@ class _AppointmentsState extends State<Appointments> {
         child: StreamBuilder<List<Booking>>(
           stream: _bookingsStream,
           builder: (context, snapshot) {
-
             print('Stream state: ${snapshot.connectionState}');
             print('Has error: ${snapshot.hasError}');
             print('Error: ${snapshot.error}');
@@ -209,11 +208,7 @@ class _AppointmentsState extends State<Appointments> {
                 ],
               )
             : const Icon(Icons.arrow_forward_ios, size: 14),
-        onTap: _canModifyBooking(booking)
-            ? null
-            : () {
-                // TODO: Navigate to a booking detail screen (future enhancement)
-              },
+        onTap: _canModifyBooking(booking) ? null : () {},
       ),
     );
   }
