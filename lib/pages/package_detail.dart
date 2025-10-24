@@ -5,6 +5,7 @@ import '../models/package.dart';
 import '../utils/package_diff.dart';
 import '../repositories/packages_repository.dart';
 import '../screens/pet_selection_screen.dart';
+import '../services/auth_service.dart'; // ✅ ajouté pour vérifier admin
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
@@ -20,26 +21,44 @@ class PackageDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final added = pack.highlights.isNotEmpty
-    ? pack.highlights
-    : addedServicesForTier(pack, allPackages);
-
-    final isSignedIn = FirebaseAuth.instance.currentUser != null;
+        ? pack.highlights
+        : addedServicesForTier(pack, allPackages);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
 
-      // Ouvre uniquement la sheet
-      floatingActionButton: isSignedIn
-          ? FloatingActionButton.extended(
-              icon: const Icon(Icons.edit),
-              label: const Text('Edit'),
-              onPressed: () => _openEditBottomSheet(context, pack),
-            )
-          : null,
+      // ✅ FAB visible uniquement pour admin
+    // ✅ FAB visible uniquement pour admin
+floatingActionButton: StreamBuilder<User?>(
+  stream: FirebaseAuth.instance.authStateChanges(),
+  builder: (context, snap) {
+    if (!snap.hasData) {
+      return const SizedBox.shrink(); // ❌ pas "null", mais un widget vide
+    }
+
+    return FutureBuilder<bool>(
+      future: AuthService().isAdmin(),
+      builder: (context, adminSnap) {
+        final isAdmin = adminSnap.data ?? false;
+        if (!isAdmin) {
+          return const SizedBox.shrink(); // ❌ idem ici
+        }
+
+        return FloatingActionButton.extended(
+          icon: const Icon(Icons.edit),
+          label: const Text('Edit'),
+          onPressed: () => _openEditBottomSheet(context, pack),
+        );
+      },
+    );
+  },
+),
+
+
+
 
       body: CustomScrollView(
         slivers: [
-          //SliverAppBar
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -95,7 +114,7 @@ class PackageDetailPage extends StatelessWidget {
             ),
           ),
 
-          // Body
+          // ===== BODY =====
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
@@ -127,10 +146,7 @@ class PackageDetailPage extends StatelessWidget {
                       children: added
                           .map(
                             (s) => _LineItem(
-                              leading: const Icon(
-                                Icons.star_border_rounded,
-                                size: 22,
-                              ),
+                              leading: const Icon(Icons.star_border_rounded, size: 22),
                               text: s,
                             ),
                           )
@@ -146,10 +162,7 @@ class PackageDetailPage extends StatelessWidget {
                     children: [
                       ...pack.services.map(
                         (s) => _LineItem(
-                          leading: const Icon(
-                            Icons.check_circle_outline,
-                            size: 22,
-                          ),
+                          leading: const Icon(Icons.check_circle_outline, size: 22),
                           text: s,
                         ),
                       ),
@@ -198,6 +211,8 @@ class PackageDetailPage extends StatelessWidget {
     }
   }
 }
+
+
 
 /// ===== Bottom sheet autonome (Stateful) ======================================
 class _EditPackageSheet extends StatefulWidget {
