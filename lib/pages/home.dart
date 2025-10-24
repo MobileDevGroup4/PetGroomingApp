@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../widgets/package_card.dart';
 import 'package_detail.dart';
@@ -6,6 +7,7 @@ import '../models/package.dart';
 import '../utils/package_diff.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/booking_selection_screen.dart';
+import '../services/auth_service.dart'; // ✅ ajouté
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -70,13 +72,9 @@ class Home extends StatelessWidget {
                         ),
                       ),
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         sliver: SliverGrid(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: crossAxis,
                             mainAxisSpacing: 16,
                             crossAxisSpacing: 16,
@@ -87,8 +85,7 @@ class Home extends StatelessWidget {
                               final pack = items[i];
                               return PackageCard(
                                 pack: pack,
-                                highlightsText:
-                                    highlightsLabel(pack, items),
+                                highlightsText: highlightsLabel(pack, items),
                                 onTap: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -102,20 +99,15 @@ class Home extends StatelessWidget {
                                 showAdminActions: isSignedIn,
                                 onDelete: () async {
                                   final repo = PackagesRepository();
-                                  final messenger =
-                                      ScaffoldMessenger.of(context); // capture AVANT l'await
+                                  final messenger = ScaffoldMessenger.of(context);
                                   try {
                                     await repo.deletePackage(pack.id);
                                     messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text('Deleted "${pack.name}"'),
-                                      ),
+                                      SnackBar(content: Text('Deleted "${pack.name}"')),
                                     );
                                   } catch (e) {
                                     messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text('Delete failed: $e'),
-                                      ),
+                                      SnackBar(content: Text('Delete failed: $e')),
                                     );
                                   }
                                 },
@@ -145,35 +137,55 @@ class Home extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (isSignedIn) ...[
-                FloatingActionButton.small(
-                  heroTag: 'fab-add-package',
-                  tooltip: 'Add Package',
-                  child: const Icon(Icons.add),
-                  onPressed: () async {
-                    // capture AVANT l'await
-                    final messenger = ScaffoldMessenger.of(context);
+              // ✅ FAB "Add Package" réservé à l’admin
+              if (isSignedIn)
+                FutureBuilder<bool>(
+                  future: AuthService().isAdmin(),
+                  builder: (context, adminSnap) {
+                    final isAdmin = adminSnap.data ?? false;
+                    if (!isAdmin) return const SizedBox.shrink();
 
-                    final created = await showModalBottomSheet<bool>(
-                      context: context,
-                      isScrollControlled: true,
-                      useSafeArea: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(16)),
-                      ),
-                      builder: (_) => const _CreatePackageSheet(),
+                    return Column(
+                      children: [
+                        FloatingActionButton.small(
+                          heroTag: 'fab-add-package',
+                          tooltip: 'Add Package',
+                          child: const Icon(Icons.add),
+                          onPressed: () async {
+                            final isAdminConfirmed = await AuthService().isAdmin();
+                            if (!isAdminConfirmed) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Admin rights required')),
+                              );
+                              return;
+                            }
+
+                            final messenger = ScaffoldMessenger.of(context);
+                            final created = await showModalBottomSheet<bool>(
+                              context: context,
+                              isScrollControlled: true,
+                              useSafeArea: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.vertical(top: Radius.circular(16)),
+                              ),
+                              builder: (_) => const _CreatePackageSheet(),
+                            );
+
+                            if (created == true) {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Package created')),
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                     );
-
-                    if (created == true) {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Package created')),
-                      );
-                    }
                   },
                 ),
-                const SizedBox(height: 10),
-              ],
+
+              // 🗓️ FAB pour réservation — visible pour tous
               FloatingActionButton(
                 heroTag: 'fab-calendar',
                 tooltip: 'Book Appointment',
@@ -194,6 +206,11 @@ class Home extends StatelessWidget {
     );
   }
 }
+
+// ✅ Rien d’autre à changer dans _CreatePackageSheet ou le reste du fichier
+
+
+
 
 class _CreatePackageSheet extends StatefulWidget {
   const _CreatePackageSheet();
