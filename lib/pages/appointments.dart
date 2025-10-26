@@ -6,6 +6,7 @@ import '../screens/booking_selection_screen.dart';
 import '../models/booking.dart';
 import '../services/booking_service.dart';
 import '../screens/reschedule_screen.dart';
+import '../services/notification_service.dart';
 
 class Appointments extends StatefulWidget {
   const Appointments({super.key, required this.theme});
@@ -35,6 +36,12 @@ class _AppointmentsState extends State<Appointments> {
         child: StreamBuilder<List<Booking>>(
           stream: _bookingsStream,
           builder: (context, snapshot) {
+            print('Stream state: ${snapshot.connectionState}');
+            print('Has error: ${snapshot.hasError}');
+            print('Error: ${snapshot.error}');
+            print('Data: ${snapshot.data}');
+            print('Data length: ${snapshot.data?.length}');
+
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -44,6 +51,8 @@ class _AppointmentsState extends State<Appointments> {
             }
 
             final bookings = snapshot.data ?? [];
+
+            print('Final bookings count: ${bookings.length}');
 
             // If there are no bookings, show the placeholder text
             if (bookings.isEmpty) {
@@ -130,6 +139,19 @@ class _AppointmentsState extends State<Appointments> {
           .doc(booking.id)
           .delete();
 
+      // Create notification
+      final NotificationService notificationService = NotificationService();
+      final formattedDate = DateFormat(
+        'MMM d, y - h:mm a',
+      ).format(booking.startTime.toDate());
+
+      await notificationService.createNotification(
+        title: 'Appointment Cancelled',
+        message:
+            'You have cancelled your ${booking.itemName} appointment for $formattedDate',
+        type: 'cancellation',
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -166,7 +188,7 @@ class _AppointmentsState extends State<Appointments> {
       child: ListTile(
         leading: const Icon(Icons.cut, color: Colors.orange, size: 40),
         title: Text(
-          booking.serviceName, // Using the stored serviceName
+          booking.itemName,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('$formattedDate at $formattedTime'),
@@ -186,11 +208,7 @@ class _AppointmentsState extends State<Appointments> {
                 ],
               )
             : const Icon(Icons.arrow_forward_ios, size: 14),
-        onTap: _canModifyBooking(booking)
-            ? null
-            : () {
-                // TODO: Navigate to a booking detail screen (future enhancement)
-              },
+        onTap: _canModifyBooking(booking) ? null : () {},
       ),
     );
   }

@@ -100,7 +100,7 @@ class WorkingHoursCard extends StatelessWidget {
           ),
           Switch(
             value: data['isWorking'] ?? false,
-            activeColor: Colors.green,
+            activeThumbColor: Colors.green,
             onChanged: (value) => _toggleDay(day, value),
           ),
           if (data['isWorking'] ?? false) ...[

@@ -3,17 +3,23 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../models/service.dart';
 import '../models/package.dart';
+import '../models/pet.dart';
 import '../services/booking_service.dart';
 
 class DateTimeScreen extends StatefulWidget {
   final Service? service;
   final Package? package;
+  final Pet selectedPet;
 
-  const DateTimeScreen({super.key, this.service, this.package})
-    : assert(
-        service != null || package != null,
-        'Either service or package must be provided',
-      );
+  const DateTimeScreen({
+    super.key,
+    this.service,
+    this.package,
+    required this.selectedPet,
+  }) : assert(
+         service != null || package != null,
+         'Either service or package must be provided',
+       );
 
   @override
   State<DateTimeScreen> createState() => _DateTimeScreenState();
@@ -244,17 +250,20 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                             _selectedTimeSlot!,
                           );
 
-                          // Call the appropriate booking method
                           if (isService) {
-                            await _bookingService.createServiceBooking(
-                              service: widget.service!,
-                              startTime: selectedStartTime,
-                            );
+                            await _bookingService
+                                .createServiceBookingWithNotification(
+                                  service: widget.service!,
+                                  startTime: selectedStartTime,
+                                  petId: widget.selectedPet.id,
+                                );
                           } else {
-                            await _bookingService.createPackageBooking(
-                              package: widget.package!,
-                              startTime: selectedStartTime,
-                            );
+                            await _bookingService
+                                .createPackageBookingWithNotification(
+                                  package: widget.package!,
+                                  startTime: selectedStartTime,
+                                  petId: widget.selectedPet.id,
+                                );
                           }
 
                           if (mounted) {

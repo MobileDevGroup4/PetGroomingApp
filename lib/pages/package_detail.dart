@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../models/package.dart';
 import '../utils/package_diff.dart';
-import '../screens/date_time_screen.dart';
 import '../repositories/packages_repository.dart';
+import '../screens/pet_selection_screen.dart';
+import '../services/auth_service.dart'; // ✅ ajouté pour vérifier admin
 
 class PackageDetailPage extends StatelessWidget {
   final Package pack;
@@ -19,24 +20,45 @@ class PackageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final added = addedServicesForTier(pack, allPackages);
-    final isSignedIn = FirebaseAuth.instance.currentUser != null;
+    final added = pack.highlights.isNotEmpty
+        ? pack.highlights
+        : addedServicesForTier(pack, allPackages);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF4FA),
 
-      // Ouvre uniquement la sheet
-      floatingActionButton: isSignedIn
-          ? FloatingActionButton.extended(
-              icon: const Icon(Icons.edit),
-              label: const Text('Edit'),
-              onPressed: () => _openEditBottomSheet(context, pack),
-            )
-          : null,
+      // ✅ FAB visible uniquement pour admin
+    // ✅ FAB visible uniquement pour admin
+floatingActionButton: StreamBuilder<User?>(
+  stream: FirebaseAuth.instance.authStateChanges(),
+  builder: (context, snap) {
+    if (!snap.hasData) {
+      return const SizedBox.shrink(); // ❌ pas "null", mais un widget vide
+    }
+
+    return FutureBuilder<bool>(
+      future: AuthService().isAdmin(),
+      builder: (context, adminSnap) {
+        final isAdmin = adminSnap.data ?? false;
+        if (!isAdmin) {
+          return const SizedBox.shrink(); // ❌ idem ici
+        }
+
+        return FloatingActionButton.extended(
+          icon: const Icon(Icons.edit),
+          label: const Text('Edit'),
+          onPressed: () => _openEditBottomSheet(context, pack),
+        );
+      },
+    );
+  },
+),
+
+
+
 
       body: CustomScrollView(
         slivers: [
-          //SliverAppBar
           SliverAppBar(
             pinned: true,
             stretch: true,
@@ -92,7 +114,7 @@ class PackageDetailPage extends StatelessWidget {
             ),
           ),
 
-          // Body
+          // ===== BODY =====
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
@@ -124,10 +146,7 @@ class PackageDetailPage extends StatelessWidget {
                       children: added
                           .map(
                             (s) => _LineItem(
-                              leading: const Icon(
-                                Icons.star_border_rounded,
-                                size: 22,
-                              ),
+                              leading: const Icon(Icons.star_border_rounded, size: 22),
                               text: s,
                             ),
                           )
@@ -143,10 +162,7 @@ class PackageDetailPage extends StatelessWidget {
                     children: [
                       ...pack.services.map(
                         (s) => _LineItem(
-                          leading: const Icon(
-                            Icons.check_circle_outline,
-                            size: 22,
-                          ),
+                          leading: const Icon(Icons.check_circle_outline, size: 22),
                           text: s,
                         ),
                       ),
@@ -160,7 +176,7 @@ class PackageDetailPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => DateTimeScreen(package: pack),
+                          builder: (context) => PetSelectionScreen(package: pack),
                         ),
                       );
                     },
@@ -196,6 +212,8 @@ class PackageDetailPage extends StatelessWidget {
   }
 }
 
+
+
 /// ===== Bottom sheet autonome (Stateful) ======================================
 class _EditPackageSheet extends StatefulWidget {
   const _EditPackageSheet({required this.pack});
@@ -213,6 +231,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
   late final TextEditingController _badgeCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _servicesCtrl;
+   late final TextEditingController _highlightsCtrl;
   final _repo = PackagesRepository();
 
   @override
@@ -228,6 +247,9 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
     _servicesCtrl = TextEditingController(
       text: widget.pack.services.join('\n'),
     );
+    _highlightsCtrl = TextEditingController( // 👈 AJOUT
+    text: widget.pack.highlights.join('\n'),
+  );
   }
 
   @override
@@ -238,6 +260,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
     _badgeCtrl.dispose();
     _descCtrl.dispose();
     _servicesCtrl.dispose();
+      _highlightsCtrl.dispose();
     super.dispose();
   }
 
@@ -269,6 +292,9 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                   (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
             ),
             const SizedBox(height: 12),
+            const SizedBox(height: 12),
+
+
 
             TextFormField(
               controller: _priceCtrl,
@@ -329,6 +355,16 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                 return items.isEmpty ? 'Add at least one service' : null;
               },
             ),
+              const SizedBox(height: 12), 
+              TextFormField(
+              controller: _highlightsCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Highlights (one per line)',
+                hintText: 'e.g.\nQuick dry\nSensitive shampoo',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 4,
+            ),
 
             const SizedBox(height: 16),
             Row(
@@ -342,6 +378,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                       final navigator = Navigator.of(context);
                       final duration = int.parse(_durationCtrl.text.trim());
                       final services = _linesToServices(_servicesCtrl.text);
+                      final highlights = _linesToServices(_highlightsCtrl.text);
 
                       try {
                         await _repo.updatePackageFields(widget.pack.id, {
@@ -351,6 +388,7 @@ class _EditPackageSheetState extends State<_EditPackageSheet> {
                           'badge': _badgeCtrl.text.trim(),
                           'shortDescription': _descCtrl.text.trim(),
                           'services': services,
+                          'highlights': highlights,
                         });
                         navigator.pop(true);
                       } catch (_) {

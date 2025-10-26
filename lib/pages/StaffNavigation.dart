@@ -7,8 +7,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'StaffDashboard.dart';
 import 'staff_profile.dart';
 import 'staff_aviability.dart';
+import 'staff_schedule.dart';
 import '../services/auth_service.dart';
-
+import '../main.dart';
+import 'staff_schedule.dart';
 class StaffNavigation extends StatefulWidget {
   const StaffNavigation({super.key});
 
@@ -24,11 +26,50 @@ class _StaffNavigationState extends State<StaffNavigation> {
   String? _headerImageUrl;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSub;
 
+  // Purple theme colors
+  static const Color primaryPurple = Color(0xFF6C63FF);
+  static const Color lightPurpleBackground = Color(0xFFFAF4FA);
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _initProfileListener(); // 👈 start listening for realtime profile updates
+    _initProfileListener();
+    
+    // Verify staff status on init
+    _verifyStaffStatus();
+  }
+
+  Future<void> _verifyStaffStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const App()),
+          (route) => false,
+        );
+      }
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(user.uid)
+          .get();
+      
+      final isStaff = doc.exists && (doc.data()?['isStaff'] as bool? ?? false);
+      
+      if (!isStaff && mounted) {
+        // If not staff, redirect to main app
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const App()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('Error verifying staff status: $e');
+    }
   }
 
   void _initProfileListener() {
@@ -62,7 +103,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _profileSub?.cancel(); // 👈 stop listening when leaving the page
+    _profileSub?.cancel();
     super.dispose();
   }
 
@@ -89,6 +130,10 @@ class _StaffNavigationState extends State<StaffNavigation> {
         label: 'Appointments',
       ),
       const NavigationDestination(
+        icon: Icon(Icons.event_note),
+        label: 'Schedule',
+      ),
+      const NavigationDestination(
         icon: Icon(Icons.schedule),
         label: 'Availability',
       ),
@@ -100,6 +145,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
 
     final pages = <Widget>[
       const StaffDashboardPage(),
+      const StaffSchedulePage(),
       const StaffAvailability(),
       const StaffProfile(),
     ];
@@ -112,6 +158,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
     final today = DateFormat('EEEE, d MMM').format(DateTime.now());
 
     return Scaffold(
+      backgroundColor: lightPurpleBackground,
       body: NestedScrollView(
         controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -121,11 +168,15 @@ class _StaffNavigationState extends State<StaffNavigation> {
               floating: true,
               pinned: false,
               snap: true,
+              backgroundColor: primaryPurple,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.green.shade700, Colors.teal.shade400],
+                      colors: [
+                        primaryPurple,
+                        primaryPurple.withOpacity(0.85),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -134,9 +185,9 @@ class _StaffNavigationState extends State<StaffNavigation> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+                        color: primaryPurple.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -152,7 +203,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                       // Avatar
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: Colors.white.withOpacity(0.15),
+                        backgroundColor: Colors.white.withOpacity(0.2),
                         backgroundImage: _headerImageUrl != null
                             ? NetworkImage(_headerImageUrl!)
                             : null,
@@ -216,7 +267,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
             currentPageIndex = index;
           });
         },
-        indicatorColor: Colors.green.shade200,
+        indicatorColor: primaryPurple.withOpacity(0.2),
         selectedIndex: currentPageIndex,
         destinations: destinations,
       ),
@@ -236,6 +287,10 @@ class _StaffNavigationState extends State<StaffNavigation> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryPurple,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () async {
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 Navigator.of(context).pop();
@@ -245,9 +300,9 @@ class _StaffNavigationState extends State<StaffNavigation> {
 
                   if (mounted) {
                     scaffoldMessenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('Logged out successfully'),
-                        backgroundColor: Colors.green,
+                      SnackBar(
+                        content: const Text('Logged out successfully'),
+                        backgroundColor: primaryPurple,
                       ),
                     );
                   }
@@ -267,3 +322,4 @@ class _StaffNavigationState extends State<StaffNavigation> {
     );
   }
 }
+

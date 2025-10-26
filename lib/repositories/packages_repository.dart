@@ -1,49 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/package.dart';
+import 'package:flutter_app/models/package.dart';
 
 class PackagesRepository {
   final CollectionReference<Map<String, dynamic>> _col =
       FirebaseFirestore.instance.collection('packages');
 
-  /// Streams packages (optionally only active ones) ordered by 'order'.
-  /// Note: Make sure all docs have the 'order' field.
-  /// If you get an error about missing 'order', either populate it or
-  /// change the sorting to `.orderBy('name')`.
-  Stream<List<Package>> streamPackages({bool? onlyActive}) {
-  Query<Map<String, dynamic>> q = _col;
-
-  if (onlyActive != null) {
-    // signed out -> filter active only, NO orderBy (évite index composite)
-    q = q.where('isActive', isEqualTo: onlyActive);
-  } else {
-    // signed in -> on garde le tri serveur existant
-    q = q.orderBy('order');
+  // --- helper local pour extraire un double du priceLabel ---
+  double? _parsePriceLabelToDouble(String label) {
+    final m = RegExp(r'([\d]+(?:[.,]\d+)?)').firstMatch(label);
+    if (m == null) return null;
+    return double.tryParse(m.group(1)!.replaceAll(',', '.'));
   }
 
-  return q.snapshots().map((snap) {
-    final list = snap.docs.map((d) {
-      final data = d.data();
-      return Package(
-        id: d.id,
-        name: (data['name'] ?? '') as String,
-        shortDescription: (data['shortDescription'] ?? '') as String,
-        services: List<String>.from(data['services'] ?? const []),
-        priceLabel: (data['priceLabel'] ?? '') as String,
-        badge: (data['badge'] ?? '') as String,
-        durationMinutes: (data['durationMinutes'] as num? ?? 0).toInt(),
-        isActive: (data['isActive'] as bool?) ?? true,
-      );
-    }).toList();
+  Stream<List<Package>> streamPackages({bool? onlyActive}) {
+    Query<Map<String, dynamic>> q = _col;
 
-    // si filtré, on trie côté client (ex: par name)
     if (onlyActive != null) {
-      list.sort((a, b) => a.name.compareTo(b.name));
+      q = q.where('isActive', isEqualTo: onlyActive);
+    } else {
+      q = q.orderBy('order');
     }
-    return list;
-  });
-}
 
-  /// Toggle a package status (active/inactive) and stamp 'updatedAt'
+    return q.snapshots().map((snap) {
+      final list = snap.docs.map((d) => Package.fromMap(d.id, d.data())).toList();
+      if (onlyActive != null) list.sort((a, b) => a.name.compareTo(b.name));
+      return list;
+    });
+  }
+
   Future<void> setActive(String id, bool isActive) async {
     await _col.doc(id).update({
       'isActive': isActive,
@@ -51,20 +35,71 @@ class PackagesRepository {
     });
   }
 
-  /// (Optional) Generic update helper for later edits (price/duration/text)
-  Future<void> updatePackage(String id, Map<String, dynamic> data) async {
-    await _col.doc(id).update({
-      ...data,
+  Future<void> deletePackage(String id) async {
+    await _col.doc(id).delete();
+  }
+
+  Future<void> updatePackageFields(String id, Map<String, dynamic> data) {
+    final clean = <String, dynamic>{};
+    data.forEach((k, v) {
+      if (v != null) clean[k] = v;
+    });
+    clean['updatedAt'] = FieldValue.serverTimestamp();
+    return _col.doc(id).update(clean);
+  }
+
+  Future<String> createPackage({
+    required String name,
+    required String shortDescription,
+    required List<String> services,
+    required String priceLabel,
+    String badge = '',
+    required int durationMinutes,
+    List<String> highlights = const [],
+    bool visible = true,
+  }) async {
+    final base = _parsePriceLabelToDouble(priceLabel);
+
+    final doc = await _col.add({
+      'name': name,
+      'shortDescription': shortDescription,
+      'services': services,
+      'priceLabel': priceLabel,
+      'basePrice': base,
+      'badge': badge,
+      'durationMinutes': durationMinutes,
+      'highlights': highlights,
+      'visible': visible,
+      'isActive': visible,
+      'order': DateTime.now().millisecondsSinceEpoch,
+      'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    return doc.id;
   }
-  Future<void> updatePackageFields(String id, Map<String, dynamic> data) {
-  // filter out nulls so we don't overwrite with null
-  final clean = <String, dynamic>{};
-  data.forEach((k, v) {
-    if (v != null) clean[k] = v;
+
+  // ---- Promo helpers (avec date de fin optionnelle) ----
+ Future<void> setDiscount(
+  String id, {
+  required int percent,
+  DateTime? endAt,
+}) async {
+  final map = <String, dynamic>{
+    'discountPercent': percent.clamp(0, 90),
+  };
+  if (endAt == null) {
+    map['discountEndAt'] = FieldValue.delete();
+  } else {
+    map['discountEndAt'] = Timestamp.fromDate(endAt);
+  }
+  await updatePackageFields(id, map);
+}
+
+  Future<void> clearDiscount(String id) async {
+  await updatePackageFields(id, {
+    'discountPercent': FieldValue.delete(),
+    'discountEndAt': FieldValue.delete(),
   });
-  return _col.doc(id).update(clean);
 }
 
 }

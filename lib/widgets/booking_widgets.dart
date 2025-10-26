@@ -25,7 +25,6 @@ class BookingCard extends StatelessWidget {
     this.onTap,
   });
 
-  // Helper method to safely get initials
   String _getInitial(String name) {
     if (name.isEmpty) return '?';
     return name[0].toUpperCase();
@@ -106,8 +105,7 @@ class BookingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeCard(
-      String label, String time, String status, Color color, IconData icon) {
+  Widget _buildTimeCard(String label, String time, String status, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(

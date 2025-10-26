@@ -2,27 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/pages/appointments.dart';
 import 'package:flutter_app/pages/home.dart';
 import 'package:flutter_app/pages/profile.dart';
-import 'package:flutter_app/pages/store.dart';
-import 'package:flutter_app/pages/StaffNavigation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_app/pages/StaffNavigation.dart';
 import 'firebase_options.dart';
 import 'package:flutter_app/models/pet.dart';
 import 'package:flutter_app/services/pet_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
+import 'pages/admin/admin_dashboard.dart';
+import '../services/notification_service.dart';
+import '../pages/notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   runApp(const App());
 }
 
 class App extends StatelessWidget {
   const App({super.key});
+
+  Future<bool> _checkIfStaff(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data['isStaff'] != null) {
+          return data['isStaff'] as bool;
+        }
+      }
+    } catch (e) {
+      print('Error checking staff status: $e');
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +77,23 @@ class App extends StatelessWidget {
                 return const StaffNavigation();
               }
 
-              // Regular users get normal navigation with pets
+              // Regular users get normal navigation with pets and admin check
               return StreamProvider<List<Pet>>.value(
                 value: PetService(user.uid).pets,
                 initialData: const [],
-                child: const Navigation(),
+                child: StreamBuilder<bool>(
+                  stream: AuthService().adminRoleChanges,
+                  initialData: false,
+                  builder: (context, adminSnap) {
+                    if (adminSnap.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final isAdmin = adminSnap.data ?? false;
+                    return Navigation(isAdmin: isAdmin);
+                  },
+                ),
               );
             },
           );
@@ -70,28 +101,11 @@ class App extends StatelessWidget {
       ),
     );
   }
-
-  Future<bool> _checkIfStaff(String uid) async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('profiles')
-          .doc(uid)
-          .get();
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null && data['isStaff'] != null) {
-          return data['isStaff'] as bool;
-        }
-      }
-    } catch (e) {
-      print('Error checking staff status: $e');
-    }
-    return false;
-  }
 }
 
 class Navigation extends StatefulWidget {
-  const Navigation({super.key});
+  const Navigation({super.key, this.isAdmin = false});
+  final bool isAdmin;
 
   @override
   State<Navigation> createState() => _NavigationState();
@@ -110,8 +124,7 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // Regular user navigation (NO STAFF OPTION)
-        final List<NavigationDestination> destinations = [
+        final destinations = <NavigationDestination>[
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
@@ -121,31 +134,60 @@ class _NavigationState extends State<Navigation> {
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
             ),
-          const NavigationDestination(icon: Icon(Icons.store), label: 'Store'),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
+          // REMOVED: Store tab
+          if (!widget.isAdmin)
+            const NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
+          if (widget.isAdmin)
+            const NavigationDestination(
+              icon: Icon(Icons.admin_panel_settings),
+              label: 'Admin',
+            ),
         ];
 
         final pages = <Widget>[
           const Home(),
           if (isLoggedIn) Appointments(theme: theme),
-          Store(theme: theme),
-          Profile(theme: theme),
+          // REMOVED: Store(theme: theme),
+          if (!widget.isAdmin) Profile(theme: theme),
+          if (widget.isAdmin) const AdminDashboard(),
         ];
 
-        // Clamp index to avoid errors if login/logout changes tab count
-        final int safeIndex = currentPageIndex.clamp(
-          0,
-          destinations.length - 1,
-        );
+        final safeIndex = currentPageIndex.clamp(0, destinations.length - 1);
 
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
             actions: [
-              if (!isLoggedIn)
+              if (isLoggedIn) ...[
+                StreamBuilder<int>(
+                  stream: NotificationService().getUnreadCount(),
+                  builder: (context, snapshot) {
+                    final unreadCount = snapshot.data ?? 0;
+                    return IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsPage(),
+                          ),
+                        );
+                      },
+                      icon: Badge(
+                        isLabelVisible: unreadCount > 0,
+                        label: Text('$unreadCount'),
+                        child: const Icon(Icons.notifications),
+                      ),
+                    );
+                  },
+                ),
+                TextButton.icon(
+                  onPressed: () => _showLogoutDialog(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                ),
+              ] else
                 TextButton.icon(
                   onPressed: () {
                     Navigator.of(context).push(
@@ -154,12 +196,6 @@ class _NavigationState extends State<Navigation> {
                   },
                   icon: const Icon(Icons.login),
                   label: const Text('Login'),
-                )
-              else
-                TextButton.icon(
-                  onPressed: () => _showLogoutDialog(context),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
                 ),
             ],
           ),
@@ -199,6 +235,7 @@ class _NavigationState extends State<Navigation> {
                 try {
                   await AuthService().logout();
 
+                  // Reset tab to Home after logout to avoid invalid index
                   if (mounted) {
                     setState(() {
                       currentPageIndex = 0;

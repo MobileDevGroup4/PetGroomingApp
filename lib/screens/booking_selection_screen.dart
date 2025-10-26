@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/service.dart';
 import '../models/package.dart';
 import '../services/booking_service.dart';
-import 'date_time_screen.dart';
+import '../screens/pet_selection_screen.dart';
 
 class BookingSelectionScreen extends StatefulWidget {
   const BookingSelectionScreen({super.key});
@@ -111,7 +111,7 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    DateTimeScreen(service: service),
+                                    PetSelectionScreen(service: service),
                               ),
                             );
                           },
@@ -146,7 +146,7 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    DateTimeScreen(package: package),
+                                    PetSelectionScreen(package: package),
                               ),
                             );
                           },

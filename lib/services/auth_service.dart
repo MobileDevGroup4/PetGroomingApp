@@ -1,4 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
+import '../firebase_options.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,13 +29,40 @@ class AuthService {
   /// Login with email and password
   Future<UserCredential?> login(String email, String password) async {
     try {
+      print('AuthService: Attempting login for email: $email');
+      // Ensure Firebase is initialized
+      if (!Firebase.apps.isNotEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+      
+      // Attempt login with error handling
       final result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('Login timed out. Please check your internet connection.');
+        },
       );
-      return result; // <-- return the credential
+
+      if (result.user == null) {
+        throw Exception('No user returned from Firebase');
+      }
+
+      print('AuthService: Login successful for user: ${result.user?.uid}');
+      return result;
     } on FirebaseAuthException catch (e) {
+      print('AuthService: Firebase Auth Error - ${e.code}: ${e.message}');
       throw _handleAuthError(e);
+    } on TimeoutException catch (e) {
+      print('AuthService: Login timeout - $e');
+      throw 'Login timed out. Please try again.';
+    } catch (e) {
+      print('AuthService: Unexpected error during login: $e');
+      throw 'An unexpected error occurred. Please try again.';
     }
   }
 
