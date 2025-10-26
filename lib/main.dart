@@ -1,62 +1,49 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_app/pages/appointments.dart';
-import 'package:flutter_app/pages/home.dart';
-import 'package:flutter_app/pages/profile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
 import 'firebase_options.dart';
-import 'package:flutter_app/models/pet.dart';
-import 'package:flutter_app/services/pet_service.dart';
+
+import 'pages/admin/admin_dashboard.dart';
+import 'pages/appointments.dart';
+import 'pages/home.dart';
+import 'pages/notifications.dart';
+import 'pages/profile.dart';
+import 'pages/store.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
-import 'pages/admin/admin_dashboard.dart';
-import '../services/notification_service.dart';
-import '../pages/notifications.dart';
+import 'services/notification_service.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const App());
+  runApp(const MyApp());
 }
 
-class App extends StatelessWidget {
-  const App({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Pet Grooming App',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          final user = snap.data;
-          if (user == null) {
-            // guest UI, no pets provider
-            return const Navigation();
-          }
-
-          return StreamProvider<List<Pet>>.value(
-            value: PetService(user.uid).pets,
-            initialData: const [],
-            child: StreamBuilder<bool>(
-              stream: AuthService().adminRoleChanges,
-              initialData: false,
-              builder: (context, adminSnap) {
-                if (adminSnap.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final isAdmin = adminSnap.data ?? false;
-                return Navigation(isAdmin: isAdmin);
-              },
-            ),
+        builder: (context, snapshot) {
+          return FutureBuilder<bool>(
+            future: AuthService().isAdmin(),
+            builder: (context, adminSnapshot) {
+              if (adminSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              final bool isAdmin = adminSnapshot.data ?? false;
+              return Navigation(isAdmin: isAdmin);
+            },
           );
         },
       ),
@@ -95,7 +82,10 @@ class _NavigationState extends State<Navigation> {
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
             ),
-          // REMOVED: Store tab
+          const NavigationDestination(
+            icon: Icon(Icons.store_outlined),
+            label: 'Store',
+          ),
           if (!widget.isAdmin)
             const NavigationDestination(
               icon: Icon(Icons.person_outline),
@@ -111,7 +101,7 @@ class _NavigationState extends State<Navigation> {
         final pages = <Widget>[
           const Home(),
           if (isLoggedIn) Appointments(theme: theme),
-          // REMOVED: Store(theme: theme),
+          const StorePage(),
           if (!widget.isAdmin) Profile(theme: theme),
           if (widget.isAdmin) const AdminDashboard(),
         ];
