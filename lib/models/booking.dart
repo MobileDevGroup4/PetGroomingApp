@@ -3,14 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Booking {
   final String id;
   final String userId;
-
-  // These fields can represent either a service OR a package
   final String itemId; // serviceId OR packageId
   final String itemName; // serviceName OR packageName
   final String itemType; // 'service' OR 'package'
-
+  final String petId;
   final Timestamp startTime;
   final Timestamp endTime;
+  final String notes;
 
   Booking({
     required this.id,
@@ -18,8 +17,10 @@ class Booking {
     required this.itemId,
     required this.itemName,
     required this.itemType,
+    required this.petId,
     required this.startTime,
     required this.endTime,
+    this.notes = '',
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -30,12 +31,14 @@ class Booking {
       itemId: data['itemId'] as String? ?? '',
       itemName: data['itemName'] as String? ?? 'Unnamed Item',
       itemType: data['itemType'] as String? ?? 'service',
+      petId: data['petId'] as String? ?? '',
       startTime: data['startTime'] as Timestamp? ?? Timestamp.now(),
       endTime: data['endTime'] as Timestamp? ?? Timestamp.now(),
+      notes: data['notes'] as String? ?? '',
     );
   }
 
-  // Helper getter for backwared compatibility
+  // Helper getter for backward compatibility
   String get serviceId => itemId;
   String get serviceName => itemName;
   bool get isService => itemType == 'service';

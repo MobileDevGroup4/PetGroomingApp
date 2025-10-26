@@ -59,7 +59,7 @@ class BookingService {
   Future<List<Booking>> getExistingBookingsForDay(DateTime date) async {
     try {
       logger.d('Fetching bookings from Firestore');
-      // Set start o f the selected day (at 00:00:00)
+      // Set start of the selected day (at 00:00:00)
       final startOfDay = DateTime(date.year, date.month, date.day);
       // Set end of the selected day (at 23:59:59)
       final endOfDay = startOfDay.add(const Duration(days: 1));
@@ -85,6 +85,7 @@ class BookingService {
     required Service service,
     required DateTime startTime,
     required String petId,
+    String notes = '', // Optional notes parameter
   }) async {
     try {
       final endTime = startTime.add(
@@ -98,6 +99,7 @@ class BookingService {
         petId: petId,
         startTime: startTime,
         endTime: endTime,
+        notes: notes,
       );
 
       logger.d('Service booking created successfully');
@@ -107,11 +109,11 @@ class BookingService {
     }
   }
 
-  // Create booking for a PACKAGE
   Future<void> createPackageBooking({
     required Package package,
     required DateTime startTime,
     required String petId,
+    String notes = '', // Optional notes parameter
   }) async {
     try {
       final endTime = startTime.add(
@@ -125,6 +127,7 @@ class BookingService {
         petId: petId,
         startTime: startTime,
         endTime: endTime,
+        notes: notes,
       );
 
       logger.d('Package booking created successfully');
@@ -170,6 +173,7 @@ class BookingService {
     required String petId,
     required DateTime startTime,
     required DateTime endTime,
+    String notes = '', // Optional notes parameter
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -184,6 +188,7 @@ class BookingService {
       'petId': petId,
       'startTime': Timestamp.fromDate(startTime),
       'endTime': Timestamp.fromDate(endTime),
+      'notes': notes,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -206,11 +211,13 @@ class BookingService {
     required Service service,
     required DateTime startTime,
     required String petId,
+    String notes = '',
   }) async {
     await createServiceBooking(
       service: service,
       startTime: startTime,
       petId: petId,
+      notes: notes,
     );
 
     await _createNotificationForBooking(
@@ -223,11 +230,13 @@ class BookingService {
     required Package package,
     required DateTime startTime,
     required String petId,
+    String notes = '',
   }) async {
     await createPackageBooking(
       package: package,
       startTime: startTime,
       petId: petId,
+      notes: notes,
     );
 
     await _createNotificationForBooking(

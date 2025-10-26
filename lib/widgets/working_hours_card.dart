@@ -73,7 +73,7 @@ class WorkingHoursCard extends StatelessWidget {
             icon: const Icon(Icons.save),
             label: const Text('Save Working Hours'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: const Color.fromARGB(255, 150, 121, 244),
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 48),
             ),
@@ -100,7 +100,7 @@ class WorkingHoursCard extends StatelessWidget {
           ),
           Switch(
             value: data['isWorking'] ?? false,
-            activeThumbColor: Colors.green,
+            activeThumbColor: const Color.fromARGB(255, 154, 180, 245),
             onChanged: (value) => _toggleDay(day, value),
           ),
           if (data['isWorking'] ?? false) ...[
