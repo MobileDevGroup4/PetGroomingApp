@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/booking_selection_screen.dart';
 import '../models/booking.dart';
 import '../models/pet.dart';
-import '../services/booking_service.dart';
 import '../screens/reschedule_screen.dart';
 import '../services/notification_service.dart';
 
