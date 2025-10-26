@@ -12,6 +12,8 @@ class Booking {
   final Timestamp startTime;
   final Timestamp endTime;
 
+  final String notes;
+
   Booking({
     required this.id,
     required this.userId,
@@ -20,6 +22,7 @@ class Booking {
     required this.itemType,
     required this.startTime,
     required this.endTime,
+    this.notes = '',
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -32,10 +35,11 @@ class Booking {
       itemType: data['itemType'] as String? ?? 'service',
       startTime: data['startTime'] as Timestamp? ?? Timestamp.now(),
       endTime: data['endTime'] as Timestamp? ?? Timestamp.now(),
+      notes: data['notes'] as String? ?? '',
     );
   }
 
-  // Helper getter for backwared compatibility
+  // Helper getter for backward compatibility
   String get serviceId => itemId;
   String get serviceName => itemName;
   bool get isService => itemType == 'service';

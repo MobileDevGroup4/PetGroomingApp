@@ -27,6 +27,10 @@ class DateTimeScreen extends StatefulWidget {
 
 class _DateTimeScreenState extends State<DateTimeScreen> {
   final BookingService _bookingService = BookingService();
+
+  // Controller for the notes text field
+  final TextEditingController _notesController = TextEditingController();
+
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String? _selectedTimeSlot;
@@ -34,7 +38,7 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
   // This will hold the generated available slots
   late Future<List<String>> _availableTimeSlotsFuture;
 
-  // Helper geteers to know what we are booking
+  // Helper getters to know what we are booking
   bool get isService => widget.service != null;
   bool get isPackage => widget.package != null;
 
@@ -49,6 +53,13 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
     _selectedDay = _focusedDay;
     // Fetch slots for the initially selected day
     _availableTimeSlotsFuture = _getAvailableTimeSlots(_selectedDay!);
+  }
+
+  // Dispose the notes controller
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   // --- Start of the CORE LOGIC ---
@@ -137,96 +148,149 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
     final minute = int.parse(parts[1]);
     return DateTime(date.year, date.month, date.day, hour, minute);
   }
-  // --- End of CORE LOGIC ---
 
   Widget _buildTimeSlotGrid(List<String> slots) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Container(
+      height: 200,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 2.5,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: slots.length,
-      itemBuilder: (context, index) {
-        final slot = slots[index];
-        final isSelected = slot == _selectedTimeSlot;
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedTimeSlot = slot;
-            });
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blue : Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              slot,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-                fontWeight: FontWeight.bold,
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 2.5,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: slots.length,
+        itemBuilder: (context, index) {
+          final slot = slots[index];
+          final isSelected = _selectedTimeSlot == slot;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedTimeSlot = slot;
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blue : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isSelected
+                      ? Colors.blue.shade800
+                      : Colors.grey.shade400,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  slot,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : Colors.black,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Book $itemName')),
+      appBar: AppBar(
+        title: const Text('Select Date & Time'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Service/Package Info
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Booking for: ${widget.selectedPet.name}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text('Service: $itemName'),
+                  Text('Duration: $itemDuration minutes'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Calendar
+            Text('Select Date', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
             TableCalendar(
               firstDay: DateTime.now(),
-              lastDay: DateTime.now().add(const Duration(days: 365)),
+              lastDay: DateTime.now().add(const Duration(days: 90)),
               focusedDay: _focusedDay,
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
               onDaySelected: (selectedDay, focusedDay) {
                 setState(() {
                   _selectedDay = selectedDay;
                   _focusedDay = focusedDay;
-                  _selectedTimeSlot = null;
+                  _selectedTimeSlot = null; // Reset time selection
                   _availableTimeSlotsFuture = _getAvailableTimeSlots(
                     selectedDay,
                   );
                 });
               },
-              calendarFormat: CalendarFormat.month,
-            ),
-            const SizedBox(height: 16),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Select a time slot:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              calendarStyle: CalendarStyle(
+                todayDecoration: BoxDecoration(
+                  color: Colors.blue.shade300,
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: const BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
+            // Time Slots
+            Text(
+              'Available Times',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
             FutureBuilder<List<String>>(
               future: _availableTimeSlotsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final slots = snapshot.data ?? [];
-                if (slots.isEmpty) {
                   return const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No available time slots for this day.'),
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                final slots = snapshot.data ?? [];
+                if (slots.isEmpty) {
+                  return Container(
+                    height: 100,
+                    padding: const EdgeInsets.all(16),
+                    child: const Center(
+                      child: Text(
+                        'No available slots for this date',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
                     ),
                   );
                 }
@@ -234,6 +298,27 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
               },
             ),
             const SizedBox(height: 32),
+
+            // Notes Section
+            Text(
+              'Special Notes (Optional)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Any special requests or notes for the groomer...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Confirm Button
             Center(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -243,7 +328,11 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                     ? null
                     : () async {
                         final scaffoldMessenger = ScaffoldMessenger.of(context);
+
                         final navigator = Navigator.of(context);
+
+                        final notes = _notesController.text.trim();
+
                         try {
                           final selectedStartTime = _parseSlot(
                             _selectedDay!,
@@ -256,6 +345,7 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                                   service: widget.service!,
                                   startTime: selectedStartTime,
                                   petId: widget.selectedPet.id,
+                                  notes: notes,
                                 );
                           } else {
                             await _bookingService
@@ -263,14 +353,17 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                                   package: widget.package!,
                                   startTime: selectedStartTime,
                                   petId: widget.selectedPet.id,
+                                  notes: notes,
                                 );
                           }
 
                           if (mounted) {
                             scaffoldMessenger.showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Booking confirmed successfully!',
+                                  notes.isEmpty
+                                      ? 'Booking confirmed successfully!'
+                                      : 'Booking confirmed with notes saved!',
                                 ),
                                 backgroundColor: Colors.green,
                               ),
