@@ -1,0 +1,214 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+
+
+class BookingDetailPage extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String bookingId, userName, petName, userId, petId;
+  final Map<String, dynamic>? petData;
+
+  const BookingDetailPage({
+    super.key,
+    required this.data,
+    required this.bookingId,
+    required this.userName,
+    required this.petName,
+    required this.userId,
+    required this.petId,
+    this.petData,
+  });
+
+  String _date(Timestamp? t) =>
+      t == null ? 'N/A' : DateFormat('EEEE, dd MMM yyyy').format(t.toDate());
+  String _time(Timestamp? t) =>
+      t == null ? 'N/A' : DateFormat('hh:mm a').format(t.toDate());
+  String _duration(Timestamp? s, Timestamp? e) {
+    if (s == null || e == null) return 'N/A';
+    final d = e.toDate().difference(s.toDate());
+    return d.inHours > 0 ? '${d.inHours}h ${d.inMinutes % 60}m' : '${d.inMinutes}m';
+  }
+
+  Future<Map<String, dynamic>> _fetchPackageInfo(String itemId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('packages')
+          .doc(itemId)
+          .get();
+      if (doc.exists) return doc.data()!;
+    } catch (e) {
+      print('Error fetching package info: $e');
+    }
+    return {'name': 'Unknown', 'services': []};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final start = data['startTime'] as Timestamp?;
+    final end = data['endTime'] as Timestamp?;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Booking Details'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _fetchPackageInfo(data['itemId'] ?? ''),
+        builder: (context, snapshot) {
+          final packageData = snapshot.data ?? {'services': []};
+          final services = (packageData['services'] as List<dynamic>)
+              .map((e) => e.toString())
+              .join(', ');
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _header(start, services),
+                const SizedBox(height: 16),
+                _card([
+                  _row('Service', data['itemName'] ?? 'Unknown'),
+                  const Divider(height: 24),
+                  _row('Pet Name', petName),
+                  const Divider(height: 24),
+                  _row('Booking ID', bookingId.substring(0, 8)),
+                  const Divider(height: 24),
+                  _row('Created', '${_date(data['createdAt'] as Timestamp?)}\n${_time(data['createdAt'] as Timestamp?)}'),
+                ]),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: _timeCard('Check In', _time(start), _date(start), const Color(0xFF4CAF50), Icons.login)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _timeCard('Check Out', _time(end), _date(end), const Color(0xFFFF6B9D), Icons.logout)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _card([
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.timer_outlined, color: Color(0xFFFF9800), size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(_duration(start, end), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ]),
+                if (petData != null) ...[
+                  const SizedBox(height: 24),
+                  _sectionHeader('Pet Information', Icons.pets),
+                  const SizedBox(height: 12),
+                  _card([
+                    _detail(Icons.badge_outlined, 'Name', petData!['name']?.toString() ?? 'N/A', const Color(0xFF4CAF50)),
+                    const Divider(height: 24),
+                    _detail(Icons.category_outlined, 'Breed', petData!['breed']?.toString() ?? 'N/A', const Color(0xFF2196F3)),
+                    const Divider(height: 24),
+                    _detail(Icons.cake_outlined, 'Age', petData!['age']?.toString() ?? 'N/A', const Color(0xFFFF9800)),
+                    const Divider(height: 24),
+                    _detail(Icons.color_lens_outlined, 'Colour', petData!['colour']?.toString() ?? 'N/A', const Color(0xFFFF5722)),
+                    const Divider(height: 24),
+                    _detail(Icons.scale_outlined, 'Weight', petData!['weight']?.toString() ?? 'N/A', const Color(0xFF9C27B0)),
+                    const Divider(height: 24),
+                    _detail(Icons.favorite_outline, 'Preferences', petData!['preferences']?.toString() ?? 'N/A', const Color(0xFFE91E63)),
+                  ]),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _header(Timestamp? start, String services) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: const Color(0xFF4CAF50), borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today, color: Colors.white, size: 36),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(services, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(_date(start), style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _card(List<Widget> children) => Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Column(children: children),
+      );
+
+  Widget _row(String title, String value) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          Text(value, style: const TextStyle(fontSize: 16)),
+        ],
+      );
+
+  Widget _timeCard(String label, String time, String date, Color color, IconData icon) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 8),
+                Text(label, style: const TextStyle(color: Colors.black54)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(time, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(date, style: const TextStyle(color: Colors.black54)),
+          ],
+        ),
+      );
+
+  Widget _sectionHeader(String title, IconData icon) => Row(
+        children: [
+          Icon(icon, color: Colors.black54),
+          const SizedBox(width: 8),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      );
+
+  Widget _detail(IconData icon, String title, String value, Color color) => Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
+        ],
+      );
+}

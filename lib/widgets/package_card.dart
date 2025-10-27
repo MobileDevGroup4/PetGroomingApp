@@ -537,13 +537,13 @@ class _PricePill extends StatelessWidget {
     final theme = Theme.of(context);
     final hasDiscount = pack.hasDiscount && pack.basePrice != null && pack.basePrice! > 0;
 
-    String _suffix() {
+    String suffix() {
       final m = RegExp(r'^\s*([\d.,]+)\s*(.*)$').firstMatch(pack.priceLabel);
       return (m != null ? m.group(2) : '')?.trim().replaceAll(RegExp(r'\s+'), ' ') ?? '';
     }
 
     String fmt(double v) {
-      final sfx = _suffix();
+      final sfx = suffix();
       final value = v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
       return sfx.isEmpty ? value : '$value $sfx';
     }

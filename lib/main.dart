@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_app/pages/StaffNavigation.dart';
 import 'firebase_options.dart';
-
+import 'package:flutter/material.dart';
 import 'pages/admin/admin_dashboard.dart';
 import 'pages/appointments.dart';
 import 'pages/home.dart';
@@ -12,15 +14,35 @@ import 'pages/store.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'models/pet.dart';
+import 'services/pet_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+  runApp(const App());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class App extends StatelessWidget {
+  const App({super.key});
+
+  Future<bool> _checkIfStaff(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data['isStaff'] != null) {
+          return data['isStaff'] as bool;
+        }
+      }
+    } catch (e) {
+      print('Error checking staff status: $e');
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,17 +54,53 @@ class MyApp extends StatelessWidget {
       ),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final user = snap.data;
+          if (user == null) {
+            return const Navigation();
+          }
+
+          // Check if user is staff
           return FutureBuilder<bool>(
-            future: AuthService().isAdmin(),
-            builder: (context, adminSnapshot) {
-              if (adminSnapshot.connectionState == ConnectionState.waiting) {
+            future: _checkIfStaff(user.uid),
+            builder: (context, staffSnapshot) {
+              if (staffSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              final bool isAdmin = adminSnapshot.data ?? false;
-              return Navigation(isAdmin: isAdmin);
+
+              final isStaff = staffSnapshot.data ?? false;
+
+              if (isStaff) {
+                // Staff users get their own dedicated navigation
+                return const StaffNavigation();
+              }
+
+              // Regular users get normal navigation with pets and admin check
+              return StreamProvider<List<Pet>>.value(
+                value: PetService(user.uid).pets,
+                initialData: const [],
+                child: StreamBuilder<bool>(
+                  stream: AuthService().adminRoleChanges,
+                  initialData: false,
+                  builder: (context, adminSnap) {
+                    if (adminSnap.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final isAdmin = adminSnap.data ?? false;
+                    return Navigation(isAdmin: isAdmin);
+                  },
+                ),
+              );
             },
           );
         },
