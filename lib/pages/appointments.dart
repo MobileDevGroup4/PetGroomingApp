@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -35,7 +36,7 @@ class _AppointmentsState extends State<Appointments> {
     _bookingsStream = _getUpcomingBookingsWithPetInfoStream();
   }
 
-  // Stream to get bookings with pet information
+  // Stream to get bookings
   Stream<List<BookingWithPet>> _getUpcomingBookingsWithPetInfoStream() {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
@@ -133,6 +134,7 @@ class _AppointmentsState extends State<Appointments> {
     final booking = bookingWithPet.booking;
     final pet = bookingWithPet.pet;
     final startTime = booking.startTime.toDate();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -144,19 +146,51 @@ class _AppointmentsState extends State<Appointments> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              // Service/Package icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(20),
+              // Pet photo avatar
+              if (pet != null && userId != null)
+                StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                  stream: FirebaseFirestore.instance
+                      .collection('petAvatars')
+                      .doc('${userId}_${pet.id}')
+                      .snapshots(),
+                  builder: (context, snap) {
+                    Uint8List? bytes;
+                    final data = snap.data?.data();
+                    final raw = data?['data'];
+                    if (raw is Uint8List) bytes = raw;
+                    if (raw is List) {
+                      bytes = Uint8List.fromList(raw.cast<int>());
+                    }
+
+                    final img = (bytes != null && bytes.isNotEmpty)
+                        ? MemoryImage(bytes)
+                        : null;
+
+                    return CircleAvatar(
+                      radius: 20,
+                      backgroundImage: img,
+                      backgroundColor: Colors.blue.shade100,
+                      child: img == null
+                          ? Icon(
+                              Icons.pets,
+                              color: Colors.blue.shade700,
+                              size: 20,
+                            )
+                          : null,
+                    );
+                  },
+                )
+              else
+                // Fallback if no pet or user
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(Icons.pets, color: Colors.blue.shade700),
                 ),
-                child: Icon(
-                  booking.isService ? Icons.content_cut : Icons.spa,
-                  color: Colors.blue.shade700,
-                ),
-              ),
               const SizedBox(width: 16),
 
               // Main content
