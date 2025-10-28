@@ -1,89 +1,197 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/product.dart';
 
 class ProductsRepository {
-  static List<Product> getAllProducts() {
-    return [
-      Product(
-        id: 'shampoo-001',
-        name: 'Pet Gentle Shampoo',
-        description:
-            'Gentle, hypoallergenic shampoo perfect for sensitive pet skin. Leaves coat soft and shiny.',
-        price: 24.99,
-        imageUrl:
-            'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300',
-        category: 'Grooming',
-      ),
-      Product(
-        id: 'food-001',
-        name: 'Premium Pet Food',
-        description:
-            'High-quality dry food with natural ingredients. Balanced nutrition for healthy pets.',
-        price: 45.99,
-        imageUrl:
-            'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=300',
-        category: 'Food',
-      ),
-      Product(
-        id: 'clipper-001',
-        name: 'Professional Nail Clipper',
-        description:
-            'Safe and easy-to-use nail clipper designed for pets. Comfortable grip handle.',
-        price: 15.99,
-        imageUrl:
-            'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=300',
-        category: 'Tools',
-      ),
-      Product(
-        id: 'brush-001',
-        name: 'Soft Bristle Brush',
-        description:
-            'Perfect for daily brushing. Gentle on skin, effective on tangles.',
-        price: 18.50,
-        imageUrl:
-            'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=300',
-        category: 'Grooming',
-      ),
-      Product(
-        id: 'toy-001',
-        name: 'Interactive Pet Toy',
-        description:
-            'Durable and fun toy to keep your pet entertained for hours.',
-        price: 12.99,
-        imageUrl:
-            'https://images.unsplash.com/photo-1585664811087-47f65abbad64?w=300',
-        category: 'Toys',
-      ),
-      Product(
-        id: 'treat-001',
-        name: 'Healthy Training Treats',
-        description:
-            'Natural treats perfect for training. Low calorie and high in flavor.',
-        price: 8.99,
-        imageUrl:
-            'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=300',
-        category: 'Food',
-      ),
-    ];
-  }
+  final CollectionReference<Map<String, dynamic>> _collection =
+      FirebaseFirestore.instance.collection('products');
 
-  static List<Product> getProductsByCategory(String category) {
-    return getAllProducts()
-        .where((product) => product.category == category)
-        .toList();
-  }
-
-  static Product? getProductById(String id) {
+  // Check if collection is empty and auto-populate if needed
+  Future<void> _checkAndPopulateProducts() async {
     try {
-      return getAllProducts().firstWhere((product) => product.id == id);
+      final snapshot = await _collection.limit(1).get();
+      if (snapshot.docs.isEmpty) {
+        await addSampleProducts();
+      }
     } catch (e) {
+      print('Error checking products collection: $e');
+    }
+  }
+
+  // Get all products from Firestore
+  Future<List<Product>> getAllProducts() async {
+    await _checkAndPopulateProducts();
+    try {
+      final querySnapshot = await _collection.get();
+      return querySnapshot.docs
+          .map((doc) => Product.fromMap({...doc.data(), 'id': doc.id}))
+          .toList();
+    } catch (e) {
+      print('Error getting products: $e');
+      return [];
+    }
+  }
+
+  // Stream all products (auto-populate if empty)
+  Stream<List<Product>> streamAllProducts() {
+    _checkAndPopulateProducts();
+    return _collection.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Product.fromMap({...doc.data(), 'id': doc.id}))
+          .toList();
+    });
+  }
+
+  // Get products by category
+  Future<List<Product>> getProductsByCategory(String category) async {
+    try {
+      final querySnapshot = await _collection
+          .where('category', isEqualTo: category)
+          .get();
+      return querySnapshot.docs
+          .map((doc) => Product.fromMap({...doc.data(), 'id': doc.id}))
+          .toList();
+    } catch (e) {
+      print('Error getting products by category: $e');
+      return [];
+    }
+  }
+
+  // Stream products by category
+  Stream<List<Product>> streamProductsByCategory(String category) {
+    return _collection.where('category', isEqualTo: category).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) => Product.fromMap({...doc.data(), 'id': doc.id}))
+          .toList();
+    });
+  }
+
+  // Get single product by ID
+  Future<Product?> getProductById(String id) async {
+    try {
+      final doc = await _collection.doc(id).get();
+      if (doc.exists) {
+        return Product.fromMap({...doc.data()!, 'id': doc.id});
+      }
+      return null;
+    } catch (e) {
+      print('Error getting product by ID: $e');
       return null;
     }
   }
 
-  static List<String> getCategories() {
-    final products = getAllProducts();
-    final categories = products.map((p) => p.category).toSet().toList();
-    categories.sort();
-    return categories;
+  // Get all categories
+  Future<List<String>> getCategories() async {
+    try {
+      final querySnapshot = await _collection.get();
+      final categories = querySnapshot.docs
+          .map((doc) => doc.data()['category'] as String?)
+          .where((category) => category != null)
+          .cast<String>()
+          .toSet()
+          .toList();
+      categories.sort();
+      return categories;
+    } catch (e) {
+      print('Error getting categories: $e');
+      return [];
+    }
+  }
+
+  // Create a new product
+  Future<String> createProduct({
+    required String name,
+    required String description,
+    required double price,
+    required String imageUrl,
+    required String category,
+    bool inStock = true,
+  }) async {
+    try {
+      final docRef = await _collection.add({
+        'name': name,
+        'description': description,
+        'price': price,
+        'imageUrl': imageUrl,
+        'category': category,
+        'inStock': inStock,
+      });
+      return docRef.id;
+    } catch (e) {
+      print('Error creating product: $e');
+      rethrow;
+    }
+  }
+
+  // Add sample products using createProduct function
+  Future<void> addSampleProducts() async {
+    final sampleProducts = [
+      {
+        'name': 'Pet Gentle Shampoo',
+        'description':
+            'Gentle, hypoallergenic shampoo perfect for sensitive pet skin. Leaves coat soft and shiny.',
+        'price': 24.99,
+        'imageUrl':
+            'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300',
+        'category': 'Grooming',
+      },
+      {
+        'name': 'Premium Pet Food',
+        'description':
+            'High-quality dry food with natural ingredients. Balanced nutrition for healthy pets.',
+        'price': 45.99,
+        'imageUrl':
+            'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=300',
+        'category': 'Food',
+      },
+      {
+        'name': 'Professional Nail Clipper',
+        'description':
+            'Safe and easy-to-use nail clipper designed for pets. Comfortable grip handle.',
+        'price': 15.99,
+        'imageUrl':
+            'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=300',
+        'category': 'Tools',
+      },
+      {
+        'name': 'Soft Bristle Brush',
+        'description':
+            'Perfect for daily brushing. Gentle on skin, effective on tangles.',
+        'price': 18.50,
+        'imageUrl':
+            'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=300',
+        'category': 'Grooming',
+      },
+      {
+        'name': 'Interactive Pet Toy',
+        'description':
+            'Durable and fun toy to keep your pet entertained for hours.',
+        'price': 12.99,
+        'imageUrl':
+            'https://images.unsplash.com/photo-1585664811087-47f65abbad64?w=300',
+        'category': 'Toys',
+      },
+      {
+        'name': 'Healthy Training Treats',
+        'description':
+            'Natural treats perfect for training. Low calorie and high in flavor.',
+        'price': 8.99,
+        'imageUrl':
+            'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=300',
+        'category': 'Food',
+      },
+    ];
+
+    for (final productData in sampleProducts) {
+      await createProduct(
+        name: productData['name'] as String,
+        description: productData['description'] as String,
+        price: productData['price'] as double,
+        imageUrl: productData['imageUrl'] as String,
+        category: productData['category'] as String,
+      );
+    }
   }
 }
