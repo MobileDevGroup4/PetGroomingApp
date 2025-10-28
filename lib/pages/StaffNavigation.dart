@@ -10,7 +10,7 @@ import 'staff_aviability.dart';
 import 'staff_schedule.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
-import 'staff_schedule.dart';
+
 class StaffNavigation extends StatefulWidget {
   const StaffNavigation({super.key});
 
@@ -35,7 +35,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _initProfileListener();
-    
+
     // Verify staff status on init
     _verifyStaffStatus();
   }
@@ -57,9 +57,9 @@ class _StaffNavigationState extends State<StaffNavigation> {
           .collection('profiles')
           .doc(user.uid)
           .get();
-      
+
       final isStaff = doc.exists && (doc.data()?['isStaff'] as bool? ?? false);
-      
+
       if (!isStaff && mounted) {
         // If not staff, redirect to main app
         Navigator.of(context).pushAndRemoveUntil(
@@ -82,21 +82,23 @@ class _StaffNavigationState extends State<StaffNavigation> {
         .doc(user.uid)
         .snapshots()
         .listen((snapshot) {
-      if (!snapshot.exists) return;
+          if (!snapshot.exists) return;
 
-      final data = snapshot.data()!;
-      final name = (data['name'] as String?)?.trim();
-      final imageUrl = data['profileImage'] as String?;
+          final data = snapshot.data()!;
+          final name = (data['name'] as String?)?.trim();
+          final imageUrl = data['profileImage'] as String?;
 
-      if (mounted) {
-        setState(() {
-          _headerName = name != null && name.isNotEmpty
-              ? name
-              : (user.displayName ?? user.email?.split('@').first ?? 'Staff');
-          _headerImageUrl = imageUrl;
+          if (mounted) {
+            setState(() {
+              _headerName = name != null && name.isNotEmpty
+                  ? name
+                  : (user.displayName ??
+                        user.email?.split('@').first ??
+                        'Staff');
+              _headerImageUrl = imageUrl;
+            });
+          }
         });
-      }
-    });
   }
 
   @override
@@ -110,11 +112,13 @@ class _StaffNavigationState extends State<StaffNavigation> {
   void _onScroll() {
     if (_scrollController.hasClients) {
       // Hide header when scrolling up, show when scrolling down
-      if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
         if (_isHeaderVisible) {
           setState(() => _isHeaderVisible = false);
         }
-      } else if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
+      } else if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
         if (!_isHeaderVisible) {
           setState(() => _isHeaderVisible = true);
         }
@@ -173,10 +177,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        primaryPurple,
-                        primaryPurple.withOpacity(0.85),
-                      ],
+                      colors: [primaryPurple, primaryPurple.withOpacity(0.85)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -322,4 +323,3 @@ class _StaffNavigationState extends State<StaffNavigation> {
     );
   }
 }
-

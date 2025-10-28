@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import '../services/storage_service.dart';
-import '../services/staff_profile_controller.dart';
 
 import '../widgets/staff_profile_widgets.dart';
 
@@ -75,8 +74,9 @@ class _StaffProfileState extends State<StaffProfile> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error loading profile: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading profile: $e')));
       }
     }
   }
@@ -116,8 +116,9 @@ class _StaffProfileState extends State<StaffProfile> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
       }
     }
   }
@@ -132,7 +133,9 @@ class _StaffProfileState extends State<StaffProfile> {
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must be logged in to upload a profile image.')),
+          const SnackBar(
+            content: Text('You must be logged in to upload a profile image.'),
+          ),
         );
       }
       return;
@@ -165,7 +168,10 @@ class _StaffProfileState extends State<StaffProfile> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Profile image uploaded'), backgroundColor: primaryPurple),
+          SnackBar(
+            content: const Text('Profile image uploaded'),
+            backgroundColor: primaryPurple,
+          ),
         );
       }
     } catch (e) {
@@ -179,14 +185,18 @@ class _StaffProfileState extends State<StaffProfile> {
             _isLoading = false;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: const Text('Profile image saved'), backgroundColor: primaryPurple),
+            SnackBar(
+              content: const Text('Profile image saved'),
+              backgroundColor: primaryPurple,
+            ),
           );
         }
       } catch (e2) {
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Image upload failed: $e / $e2')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Image upload failed: $e / $e2')),
+          );
         }
       }
     }
@@ -217,10 +227,21 @@ class _StaffProfileState extends State<StaffProfile> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _nameController.text.isEmpty ? 'Staff Member' : _nameController.text,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      _nameController.text.isEmpty
+                          ? 'Staff Member'
+                          : _nameController.text,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    Text(user.email ?? '', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    Text(
+                      user.email ?? '',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     buildStaffBadge(primaryPurple),
                     const SizedBox(height: 24),
@@ -254,8 +275,9 @@ class _StaffProfileState extends State<StaffProfile> {
                           label: 'Full Name',
                           icon: Icons.badge,
                           enabled: _isEditing,
-                          validator: (value) =>
-                              value == null || value.isEmpty ? 'Name is required' : null,
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Name is required'
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         buildTextField(
