@@ -4,6 +4,7 @@ import '../models/service.dart';
 import '../models/package.dart';
 import '../services/booking_service.dart';
 import '../screens/pet_selection_screen.dart';
+import '../services/package_recommendation_service.dart';
 
 class BookingSelectionScreen extends StatefulWidget {
   const BookingSelectionScreen({super.key});
@@ -15,6 +16,10 @@ class BookingSelectionScreen extends StatefulWidget {
 class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
   bool _isLoadingServices = true;
   bool _isLoadingPackages = true;
+
+  Package? _recommendedPackage;
+  final PackageRecommendationService _recommendationService =
+      PackageRecommendationService();
 
   List<Service> _services = [];
   List<Package> _packages = [];
@@ -33,6 +38,9 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
       setState(() {
         _services = results[0] as List<Service>;
         _packages = results[1] as List<Package>;
+        _recommendedPackage = _recommendationService.getRandomRecommendation(
+          _packages,
+        );
         _isLoadingServices = false;
         _isLoadingPackages = false;
       });
@@ -120,6 +128,28 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                     },
                   ),
                   const SizedBox(height: 32),
+
+                  // Recommendation section
+                  if (_recommendedPackage != null) ...[
+                    _buildSectionHeader('🌟 Recommended for You'),
+                    const SizedBox(height: 12),
+                    _buildRecommendationCard(_recommendedPackage!),
+                    const SizedBox(height: 8),
+                    // Disclaimer
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'This is just a suggestion - you can choose any package below that fits your pet\'s needs.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
 
                   // Package selection
                   _buildSectionHeader('Packages Bundles'),
@@ -252,6 +282,116 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
     return Text(
       title,
       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    );
+  }
+
+  Widget _buildRecommendationCard(Package package) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade50, Colors.purple.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.blue.shade200, width: 2),
+      ),
+      child: Card(
+        elevation: 0,
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PetSelectionScreen(package: package),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row: Recommended badge + Duration
+                Row(
+                  children: [
+                    // Recommended badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: Colors.orange.shade100,
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: const Text(
+                        'RECOMMENDED',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    // Duration
+                    const Icon(Icons.schedule, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${package.durationMinutes} min',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Package name
+                Text(
+                  package.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Short description
+                Text(
+                  package.shortDescription,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 12),
+                // Price
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFC107).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: const Color(0xFFFFC107).withValues(alpha: 0.6),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    package.priceLabel,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
