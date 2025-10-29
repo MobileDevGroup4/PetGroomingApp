@@ -114,6 +114,8 @@ class BookingService {
         endTime: endTime,
         notes: notes,
         status: status,
+        originalPrice: service.price,
+        priceLabel: '${service.price.toStringAsFixed(2)} CHF',
       );
 
       logger.d(
@@ -137,6 +139,10 @@ class BookingService {
         Duration(minutes: package.durationMinutes + 10),
       ); // +10 buffer
 
+      final actualPrice = package.hasDiscount && package.discountedPrice != null
+          ? package.discountedPrice!
+          : (package.basePrice ?? 0.0);
+
       await _createBookingRecord(
         itemId: package.id,
         itemName: package.name,
@@ -146,6 +152,8 @@ class BookingService {
         endTime: endTime,
         notes: notes,
         status: status,
+        originalPrice: actualPrice,
+        priceLabel: package.priceLabel,
       );
 
       logger.d(
@@ -166,6 +174,8 @@ class BookingService {
     required DateTime endTime,
     String notes = '',
     BookingStatus status = BookingStatus.initiated,
+    required double originalPrice,
+    required String priceLabel,
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -183,6 +193,8 @@ class BookingService {
       endTime: Timestamp.fromDate(endTime),
       notes: notes,
       status: status,
+      originalPrice: originalPrice,
+      priceLabel: priceLabel,
     );
 
     await _firestore.collection('bookings').add(booking.toFirestore());

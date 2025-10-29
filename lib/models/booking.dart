@@ -45,6 +45,8 @@ class Booking {
   final Timestamp endTime;
   final String notes;
   final BookingStatus status;
+  final double originalPrice;
+  final String priceLabel;
 
   Booking({
     required this.id,
@@ -57,6 +59,8 @@ class Booking {
     required this.endTime,
     this.notes = '',
     this.status = BookingStatus.initiated,
+    required this.originalPrice,
+    required this.priceLabel,
   });
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
@@ -74,6 +78,8 @@ class Booking {
       status: BookingStatusExtension.fromString(
         data['status'] as String? ?? 'initiated',
       ),
+      originalPrice: (data['originalPrice'] as num?)?.toDouble() ?? 0.0,
+      priceLabel: data['priceLabel'] as String? ?? '',
     );
   }
 
@@ -90,6 +96,8 @@ class Booking {
       'notes': notes,
       'status': status.value,
       'createdAt': FieldValue.serverTimestamp(),
+      'originalPrice': originalPrice,
+      'priceLabel': priceLabel,
     };
   }
 
@@ -105,6 +113,8 @@ class Booking {
     Timestamp? endTime,
     String? notes,
     BookingStatus? status,
+    double? originalPrice,
+    String? priceLabel,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -117,6 +127,8 @@ class Booking {
       endTime: endTime ?? this.endTime,
       notes: notes ?? this.notes,
       status: status ?? this.status,
+      originalPrice: originalPrice ?? this.originalPrice,
+      priceLabel: priceLabel ?? this.priceLabel,
     );
   }
 

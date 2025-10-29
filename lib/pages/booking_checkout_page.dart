@@ -36,6 +36,7 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage> {
       if (!mounted) return;
 
       // Show success dialog
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -51,6 +52,15 @@ class _BookingCheckoutPageState extends State<BookingCheckoutPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 8),
+              Text(
+                'Price: ${widget.booking.priceLabel.isNotEmpty ? widget.booking.priceLabel : "${widget.booking.originalPrice.toStringAsFixed(2)} CHF"}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.green,
+                ),
+              ),
               Text(
                 'Your ${widget.booking.itemName} appointment has been confirmed.',
               ),
