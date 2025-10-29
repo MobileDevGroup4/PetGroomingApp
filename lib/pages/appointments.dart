@@ -124,7 +124,7 @@ class _AppointmentsState extends State<Appointments> {
             ),
           );
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.deepPurple.shade400,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
