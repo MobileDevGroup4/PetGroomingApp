@@ -27,7 +27,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _onSearchChanged() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), () {
-      if (mounted) setState(() {}); // rebuild to pass search text
+      if (mounted) setState(() {});
     });
   }
 
