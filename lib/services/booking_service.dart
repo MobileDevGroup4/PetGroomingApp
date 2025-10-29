@@ -10,21 +10,14 @@ import '../services/notification_service.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 2,
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-    ),
-  );
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Logger logger = Logger();
 
-  // Fetch all services from the 'services' collection.
   Future<List<Service>> getServices() async {
     try {
       logger.d('Fetching services from Firestore');
       QuerySnapshot snapshot = await _firestore.collection('services').get();
 
-      // Map the document to a list of Service objects.
       List<Service> services = snapshot.docs
           .map((doc) => Service.fromFirestore(doc))
           .toList();
@@ -37,13 +30,11 @@ class BookingService {
     }
   }
 
-  // Fetch all packages from the 'packages' collection.
   Future<List<Package>> getPackages() async {
     try {
       logger.d('Fetching packages from Firestore');
       QuerySnapshot snapshot = await _firestore.collection('packages').get();
 
-      // Map the document to a list of Package objects.
       List<Package> packages = snapshot.docs
           .map((doc) => Package.fromFirestore(doc))
           .toList();
@@ -59,9 +50,7 @@ class BookingService {
   Future<List<Booking>> getExistingBookingsForDay(DateTime date) async {
     try {
       logger.d('Fetching bookings from Firestore');
-      // Set start of the selected day (at 00:00:00)
       final startOfDay = DateTime(date.year, date.month, date.day);
-      // Set end of the selected day (at 23:59:59)
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
       final snapshot = await _firestore
@@ -81,11 +70,35 @@ class BookingService {
     }
   }
 
+  Stream<List<Booking>> getUpcomingBookingsForCurrentUser() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value([]);
+    }
+    try {
+      return _firestore
+          .collection('bookings')
+          .where('userId', isEqualTo: user.uid)
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.now())
+          .orderBy('startTime')
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs
+                .map((doc) => Booking.fromFirestore(doc))
+                .toList();
+          });
+    } catch (e) {
+      logger.e('Error fetching user bookings: $e');
+      return Stream.value([]);
+    }
+  }
+
   Future<void> createServiceBooking({
     required Service service,
     required DateTime startTime,
     required String petId,
-    String notes = '', // Optional notes parameter
+    String notes = '',
+    BookingStatus status = BookingStatus.initiated,
   }) async {
     try {
       final endTime = startTime.add(
@@ -100,9 +113,12 @@ class BookingService {
         startTime: startTime,
         endTime: endTime,
         notes: notes,
+        status: status,
       );
 
-      logger.d('Service booking created successfully');
+      logger.d(
+        'Service booking created successfully with status: ${status.value}',
+      );
     } catch (e) {
       logger.e('Error creating service booking: $e');
       throw Exception('Failed to create booking.');
@@ -113,7 +129,8 @@ class BookingService {
     required Package package,
     required DateTime startTime,
     required String petId,
-    String notes = '', // Optional notes parameter
+    String notes = '',
+    BookingStatus status = BookingStatus.initiated,
   }) async {
     try {
       final endTime = startTime.add(
@@ -128,41 +145,15 @@ class BookingService {
         startTime: startTime,
         endTime: endTime,
         notes: notes,
+        status: status,
       );
 
-      logger.d('Package booking created successfully');
+      logger.d(
+        'Package booking created successfully with status: ${status.value}',
+      );
     } catch (e) {
       logger.e('Error creating package booking: $e');
       throw Exception('Failed to create booking.');
-    }
-  }
-
-  Stream<List<Booking>> getUpcomingBookingsForCurrentUser() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      // If no user is logged in, return an empty stream
-      return Stream.value([]);
-    }
-    try {
-      return _firestore
-          .collection('bookings')
-          // 1. Filter bookings by the current user's ID
-          .where('userId', isEqualTo: user.uid)
-          // 2. Only get bookings that start from now onwards
-          .where('startTime', isGreaterThanOrEqualTo: Timestamp.now())
-          // 3. Order them by start time so the soonest is first
-          .orderBy('startTime')
-          .snapshots() // This returns a Stream<QuerySnapshot>
-          .map((snapshot) {
-            // This converts the stream of snapshots into a stream of lists of Bookings
-            return snapshot.docs
-                .map((doc) => Booking.fromFirestore(doc))
-                .toList();
-          });
-    } catch (e) {
-      logger.e('Error fetching user bookings: $e');
-      // On error, return a stream with an empty list
-      return Stream.value([]);
     }
   }
 
@@ -173,37 +164,60 @@ class BookingService {
     required String petId,
     required DateTime startTime,
     required DateTime endTime,
-    String notes = '', // Optional notes parameter
+    String notes = '',
+    BookingStatus status = BookingStatus.initiated,
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('User must be logged in to create a booking.');
     }
 
-    await _firestore.collection('bookings').add({
-      'userId': user.uid,
-      'itemId': itemId,
-      'itemName': itemName,
-      'itemType': itemType,
-      'petId': petId,
-      'startTime': Timestamp.fromDate(startTime),
-      'endTime': Timestamp.fromDate(endTime),
-      'notes': notes,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final booking = Booking(
+      id: '',
+      userId: user.uid,
+      itemId: itemId,
+      itemName: itemName,
+      itemType: itemType,
+      petId: petId,
+      startTime: Timestamp.fromDate(startTime),
+      endTime: Timestamp.fromDate(endTime),
+      notes: notes,
+      status: status,
+    );
+
+    await _firestore.collection('bookings').add(booking.toFirestore());
   }
 
   Future<void> _createNotificationForBooking({
     required String itemName,
     required DateTime startTime,
+    BookingStatus status = BookingStatus.initiated,
   }) async {
     final NotificationService notificationService = NotificationService();
     final formattedDate = DateFormat('MMM d, y - h:mm a').format(startTime);
 
+    // Notification based on status
+    String title, message, type;
+    switch (status) {
+      case BookingStatus.initiated:
+        title = 'Appointment Reserved';
+        message =
+            'You have reserved $itemName for $formattedDate. Please confirm your booking.';
+        type = 'booking_reserved';
+      case BookingStatus.confirmed:
+        title = 'Appointment Confirmed';
+        message = 'Your $itemName appointment for $formattedDate is confirmed!';
+        type = 'booking_confirmed';
+      case BookingStatus.completed:
+        title = 'Service Completed';
+        message = 'Your $itemName service has been completed. Thank you!';
+        type = 'booking_completed';
+    }
+
     await notificationService.createNotification(
-      title: 'Appointment Booked',
-      message: 'You have booked $itemName for $formattedDate',
-      type: 'booking',
+      title: title,
+      message: message,
+      type: type,
     );
   }
 
@@ -212,17 +226,20 @@ class BookingService {
     required DateTime startTime,
     required String petId,
     String notes = '',
+    BookingStatus status = BookingStatus.initiated,
   }) async {
     await createServiceBooking(
       service: service,
       startTime: startTime,
       petId: petId,
       notes: notes,
+      status: status,
     );
 
     await _createNotificationForBooking(
       itemName: service.name,
       startTime: startTime,
+      status: status,
     );
   }
 
@@ -231,17 +248,97 @@ class BookingService {
     required DateTime startTime,
     required String petId,
     String notes = '',
+    BookingStatus status = BookingStatus.initiated,
   }) async {
     await createPackageBooking(
       package: package,
       startTime: startTime,
       petId: petId,
       notes: notes,
+      status: status,
     );
 
     await _createNotificationForBooking(
       itemName: package.name,
       startTime: startTime,
+      status: status,
     );
+  }
+
+  // Status management methods
+  Future<void> updateBookingStatus({
+    required String bookingId,
+    required BookingStatus newStatus,
+  }) async {
+    try {
+      await _firestore.collection('bookings').doc(bookingId).update({
+        'status': newStatus.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      logger.d('Booking status updated to ${newStatus.value}');
+    } catch (e) {
+      logger.e('Error updating booking status: $e');
+      throw Exception('Failed to update booking status.');
+    }
+  }
+
+  // Confirm booking (for checkout process)
+  Future<void> confirmBooking(String bookingId) async {
+    await updateBookingStatus(
+      bookingId: bookingId,
+      newStatus: BookingStatus.confirmed,
+    );
+
+    // Create confirmation notification
+    final NotificationService notificationService = NotificationService();
+    await notificationService.createNotification(
+      title: 'Booking Confirmed',
+      message: 'Your appointment has been confirmed!',
+      type: 'booking_confirmed',
+    );
+  }
+
+  // Complete booking (for staff)
+  Future<void> completeBooking(String bookingId) async {
+    await updateBookingStatus(
+      bookingId: bookingId,
+      newStatus: BookingStatus.completed,
+    );
+
+    // Create completion notification
+    final NotificationService notificationService = NotificationService();
+    await notificationService.createNotification(
+      title: 'Service Completed',
+      message: 'Your pet grooming service has been completed!',
+      type: 'booking_completed',
+    );
+  }
+
+  // Get bookings by status
+  Future<List<Booking>> getBookingsByStatus(BookingStatus status) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return [];
+      }
+
+      final snapshot = await _firestore
+          .collection('bookings')
+          .where('userId', isEqualTo: user.uid)
+          .where('status', isEqualTo: status.value)
+          .orderBy('startTime', descending: false)
+          .get();
+
+      return snapshot.docs.map((doc) => Booking.fromFirestore(doc)).toList();
+    } catch (e) {
+      logger.e('Error fetching bookings by status: $e');
+      return [];
+    }
+  }
+
+  // Get pending bookings (initiated status)
+  Future<List<Booking>> getPendingBookings() async {
+    return await getBookingsByStatus(BookingStatus.initiated);
   }
 }
