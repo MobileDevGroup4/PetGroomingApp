@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:typed_data';
 
 import '../screens/booking_selection_screen.dart';
 import '../models/booking.dart';
@@ -137,7 +136,7 @@ class _AppointmentsState extends State<Appointments> {
     );
   }
 
-  /// Builds individual appointment card with pet information and status
+  /// Builds individual appointment card
   Widget _buildAppointmentCard(BookingWithPet bookingWithPet) {
     final booking = bookingWithPet.booking;
     final pet = bookingWithPet.pet;
@@ -241,6 +240,37 @@ class _AppointmentsState extends State<Appointments> {
                         ),
                         const SizedBox(height: 8),
 
+                        // Booking price (preserved price)
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.attach_money,
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              booking.priceLabel.isNotEmpty
+                                  ? booking.priceLabel
+                                  : '${booking.originalPrice.toStringAsFixed(2)} CHF',
+                              style: widget.theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '(Price)',
+                              style: widget.theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade500,
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+
                         // Appointment date and time
                         Row(
                           children: [
@@ -341,17 +371,14 @@ class _AppointmentsState extends State<Appointments> {
         color = Colors.orange;
         icon = Icons.schedule;
         label = 'PENDING';
-        break;
       case BookingStatus.confirmed:
         color = Colors.green;
         icon = Icons.check_circle;
         label = 'CONFIRMED';
-        break;
       case BookingStatus.completed:
         color = Colors.blue;
         icon = Icons.done_all;
         label = 'COMPLETED';
-        break;
     }
 
     return Container(
