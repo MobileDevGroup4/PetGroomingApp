@@ -39,7 +39,8 @@ class UserProfilePage extends StatelessWidget {
         final phone = (data['phone'] as String?)?.trim() ?? '—';
         final address = (data['address'] as String?)?.trim() ?? '—';
         final photoUrl = (data['photoUrl'] as String?) ?? '';
-        final authUid = (data['uid'] as String?) ?? docId; // fallback to docId
+        // Common denominator for bookings:
+        final authUid = (data['uid'] as String?) ?? docId;
         final updatedAt = data['updatedAt'];
 
         return Scaffold(
@@ -103,12 +104,18 @@ class UserProfilePage extends StatelessWidget {
                 value: _fmt(updatedAt),
               ),
               const SizedBox(height: 16),
+
               Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: StaffToggle(docId: docId, collection: collection),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // >>> NEW: bookings section (history)
+              _BookingsSection(userId: authUid),
+
               const SizedBox(height: 16),
 
               _PasswordResetCard(profileEmail: email == '—' ? '' : email),
@@ -179,7 +186,6 @@ class _Info extends StatelessWidget {
 
 class _PasswordResetCard extends StatefulWidget {
   const _PasswordResetCard({required this.profileEmail});
-
   final String profileEmail;
 
   @override
@@ -234,7 +240,6 @@ class _PasswordResetCardState extends State<_PasswordResetCard> {
           children: [
             Text('Password', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-
             TextFormField(
               readOnly: true,
               initialValue: canEmail ? _emailToShow : '—',
@@ -261,7 +266,6 @@ class _PasswordResetCardState extends State<_PasswordResetCard> {
               ),
             ),
             const SizedBox(height: 8),
-
             Row(
               children: [
                 Expanded(
@@ -282,6 +286,155 @@ class _PasswordResetCardState extends State<_PasswordResetCard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BookingsSection extends StatelessWidget {
+  const _BookingsSection({required this.userId});
+  final String userId;
+
+  @override
+  Widget build(BuildContext context) {
+    final query = FirebaseFirestore.instance
+        .collection('bookings')
+        .where('userId', isEqualTo: userId); // <-- no orderBy
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bookings', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: query.snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snap.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Text('Failed to load bookings: ${snap.error}'),
+                  );
+                }
+
+                final raw = snap.data?.docs ?? const [];
+                if (raw.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No bookings yet'),
+                  );
+                }
+
+                // client-side sort by startTime DESC
+                final docs = [...raw]
+                  ..sort((a, b) {
+                    final sa = a.data()['startTime'];
+                    final sb = b.data()['startTime'];
+                    final ta = sa is Timestamp ? sa.millisecondsSinceEpoch : 0;
+                    final tb = sb is Timestamp ? sb.millisecondsSinceEpoch : 0;
+                    return tb.compareTo(ta);
+                  });
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final m = docs[i].data();
+                    return _BookingTile(m: m);
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BookingTile extends StatelessWidget {
+  const _BookingTile({required this.m});
+  final Map<String, dynamic> m;
+
+  @override
+  Widget build(BuildContext context) {
+    final itemName = (m['itemName'] as String?) ?? '—';
+    final itemType = (m['itemType'] as String?) ?? '';
+    final petId = (m['petId'] as String?) ?? '';
+    final status = (m['status'] as String?) ?? '—';
+    final startTs = m['startTime'];
+    final endTs = m['endTime'];
+    final notes = (m['notes'] as String?)?.trim();
+
+    String fmt(dynamic ts) => UserProfilePage._fmt(ts);
+    final when = (startTs is Timestamp || endTs is Timestamp)
+        ? '${fmt(startTs)} — ${fmt(endTs)}'
+        : '—';
+
+    return ListTile(
+      leading: const Icon(Icons.calendar_today_outlined),
+      title: Text(itemName),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(when),
+          if (itemType.isNotEmpty) Text('Type: $itemType'),
+          if (petId.isNotEmpty) Text('Pet: $petId'),
+          if (notes != null && notes.isNotEmpty) Text('Notes: $notes'),
+        ],
+      ),
+      trailing: _StatusChip(status: status),
+      onTap: () {
+        // Optionally: navigate to a BookingDetails page
+        // Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingDetailsPage(bookingId: ...)));
+      },
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = status.toLowerCase();
+    ColorScheme cs = Theme.of(context).colorScheme;
+    Color bg;
+    Color fg = cs.onSurface;
+    if (s == 'confirmed' || s == 'completed') {
+      bg = cs.primaryContainer;
+      fg = cs.onPrimaryContainer;
+    } else if (s == 'cancelled' || s == 'canceled') {
+      bg = cs.errorContainer;
+      fg = cs.onErrorContainer;
+    } else if (s == 'initiated' || s == 'pending') {
+      bg = cs.secondaryContainer;
+      fg = cs.onSecondaryContainer;
+    } else {
+      bg = cs.surfaceVariant;
+      fg = cs.onSurfaceVariant;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(color: fg, fontWeight: FontWeight.w600),
       ),
     );
   }
