@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../widgets/package_card.dart';
 import 'package_detail.dart';
@@ -18,10 +17,53 @@ class Home extends StatelessWidget {
     final repo = PackagesRepository();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Welcome to Pet Grooming'),
-        centerTitle: true,
+      backgroundColor: const Color(0xFFFAF6FF),
+      // ===== APP BAR =====
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(100),
+        child: AppBar(
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFE6D8FF), Color(0xFFF9F4FF)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(30),
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 10),
+                  Text(
+  '🐾 Welcome to Pet Grooming',
+  style: theme.textTheme.headlineSmall?.copyWith(
+    fontWeight: FontWeight.w900,
+    color: Color(0xFF4A3F55),
+    letterSpacing: 0.5,
+  ),
+),
+const SizedBox(height: 6),
+Text(
+  'Because every pet deserves the best care',
+  style: theme.textTheme.bodyMedium?.copyWith(
+    color: Color(0xFF9B91A4),
+    letterSpacing: 0.8,
+  ),
+),
+
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
+
       body: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, authSnap) {
@@ -38,12 +80,21 @@ class Home extends StatelessWidget {
                   child: Text(
                     'Firestore error:\n${snap.error}',
                     textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.redAccent),
                   ),
                 );
               }
               final items = snap.data ?? [];
               if (items.isEmpty) {
-                return const Center(child: Text('No packages available'));
+                return const Center(
+                  child: Text(
+                    'No packages available',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
               }
 
               return LayoutBuilder(
@@ -59,22 +110,56 @@ class Home extends StatelessWidget {
 
                   return CustomScrollView(
                     slivers: [
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        sliver: SliverToBoxAdapter(
-                          child: Text(
-                            'Our Packages',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
+                      // ===== BANNER "OUR PACKAGES" =====
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.deepPurple.shade100,
+                                  Colors.deepPurple.shade50
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepPurple.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                            child: Row(
+                              children: [
+                                Icon(Icons.spa_rounded,
+                                    color: Colors.deepPurple.shade400),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Our Packages',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.deepPurple.shade700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
+
+                      // ===== GRID =====
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         sliver: SliverGrid(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: crossAxis,
                             mainAxisSpacing: 16,
                             crossAxisSpacing: 16,
@@ -83,34 +168,51 @@ class Home extends StatelessWidget {
                           delegate: SliverChildBuilderDelegate(
                             (context, i) {
                               final pack = items[i];
-                              return PackageCard(
-                                pack: pack,
-                                highlightsText: highlightsLabel(pack, items),
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => PackageDetailPage(
-                                        pack: pack,
-                                        allPackages: items,
-                                      ),
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.deepPurple.shade50,
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
                                     ),
-                                  );
-                                },
-                                showAdminActions: isSignedIn,
-                                onDelete: () async {
-                                  final repo = PackagesRepository();
-                                  final messenger = ScaffoldMessenger.of(context);
-                                  try {
-                                    await repo.deletePackage(pack.id);
-                                    messenger.showSnackBar(
-                                      SnackBar(content: Text('Deleted "${pack.name}"')),
+                                  ],
+                                ),
+                                child: PackageCard(
+                                  pack: pack,
+                                  highlightsText:
+                                      highlightsLabel(pack, items),
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => PackageDetailPage(
+                                          pack: pack,
+                                          allPackages: items,
+                                        ),
+                                      ),
                                     );
-                                  } catch (e) {
-                                    messenger.showSnackBar(
-                                      SnackBar(content: Text('Delete failed: $e')),
-                                    );
-                                  }
-                                },
+                                  },
+                                  showAdminActions: isSignedIn,
+                                  onDelete: () async {
+                                    final repo = PackagesRepository();
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    try {
+                                      await repo.deletePackage(pack.id);
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Deleted "${pack.name}"')),
+                                      );
+                                    } catch (e) {
+                                      messenger.showSnackBar(SnackBar(
+                                          content: Text('Delete failed: $e')));
+                                    }
+                                  },
+                                ),
                               );
                             },
                             childCount: items.length,
@@ -127,7 +229,7 @@ class Home extends StatelessWidget {
         },
       ),
 
-      // ===== FABs =====
+      // ===== FLOATING BUTTONS =====
       floatingActionButton: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, authSnap) {
@@ -150,12 +252,15 @@ class Home extends StatelessWidget {
                         FloatingActionButton.small(
                           heroTag: 'fab-add-package',
                           tooltip: 'Add Package',
-                          child: const Icon(Icons.add),
+                          backgroundColor: Colors.deepPurple.shade300,
+                          child: const Icon(Icons.add, color: Colors.white),
                           onPressed: () async {
-                            final isAdminConfirmed = await AuthService().isAdmin();
+                            final isAdminConfirmed =
+                                await AuthService().isAdmin();
                             if (!isAdminConfirmed) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Admin rights required')),
+                                const SnackBar(
+                                    content: Text('Admin rights required')),
                               );
                               return;
                             }
@@ -166,15 +271,16 @@ class Home extends StatelessWidget {
                               isScrollControlled: true,
                               useSafeArea: true,
                               shape: const RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.vertical(top: Radius.circular(16)),
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(24)),
                               ),
                               builder: (_) => const _CreatePackageSheet(),
                             );
 
                             if (created == true) {
                               messenger.showSnackBar(
-                                const SnackBar(content: Text('Package created')),
+                                const SnackBar(
+                                    content: Text('Package created')),
                               );
                             }
                           },
@@ -189,7 +295,8 @@ class Home extends StatelessWidget {
               FloatingActionButton(
                 heroTag: 'fab-calendar',
                 tooltip: 'Book Appointment',
-                child: const Icon(Icons.calendar_today),
+                backgroundColor: Colors.deepPurple.shade400,
+                child: const Icon(Icons.calendar_today, color: Colors.white),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -207,11 +314,7 @@ class Home extends StatelessWidget {
   }
 }
 
-// ✅ Rien d’autre à changer dans _CreatePackageSheet ou le reste du fichier
-
-
-
-
+// ✅ _CreatePackageSheet ORIGINAL — inchangé, juste gardé pour cohérence
 class _CreatePackageSheet extends StatefulWidget {
   const _CreatePackageSheet();
 
