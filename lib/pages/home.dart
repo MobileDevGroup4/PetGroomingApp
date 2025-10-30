@@ -31,9 +31,7 @@ class Home extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
-              borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(30),
-              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
             ),
             child: SafeArea(
               child: Column(
@@ -41,22 +39,21 @@ class Home extends StatelessWidget {
                 children: [
                   const SizedBox(height: 10),
                   Text(
-  '🐾 Welcome to Pet Grooming',
-  style: theme.textTheme.headlineSmall?.copyWith(
-    fontWeight: FontWeight.w900,
-    color: Color(0xFF4A3F55),
-    letterSpacing: 0.5,
-  ),
-),
-const SizedBox(height: 6),
-Text(
-  'Because every pet deserves the best care',
-  style: theme.textTheme.bodyMedium?.copyWith(
-    color: Color(0xFF9B91A4),
-    letterSpacing: 0.8,
-  ),
-),
-
+                    '🐾 Welcome to Pet Grooming',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF4A3F55),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Because every pet deserves the best care',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Color(0xFF9B91A4),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -89,10 +86,7 @@ Text(
                 return const Center(
                   child: Text(
                     'No packages available',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                 );
               }
@@ -119,7 +113,7 @@ Text(
                               gradient: LinearGradient(
                                 colors: [
                                   Colors.deepPurple.shade100,
-                                  Colors.deepPurple.shade50
+                                  Colors.deepPurple.shade50,
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -127,18 +121,24 @@ Text(
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.deepPurple.withOpacity(0.1),
+                                  color: Colors.deepPurple.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 14),
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
                             child: Row(
                               children: [
-                                Icon(Icons.spa_rounded,
-                                    color: Colors.deepPurple.shade400),
+                                Icon(
+                                  Icons.spa_rounded,
+                                  color: Colors.deepPurple.shade400,
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   'Our Packages',
@@ -156,67 +156,69 @@ Text(
                       // ===== GRID =====
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         sliver: SliverGrid(
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxis,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: ratio,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, i) {
-                              final pack = items[i];
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOut,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(18),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.deepPurple.shade50,
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
+                                crossAxisCount: crossAxis,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: ratio,
+                              ),
+                          delegate: SliverChildBuilderDelegate((context, i) {
+                            final pack = items[i];
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.deepPurple.shade50,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: PackageCard(
+                                pack: pack,
+                                highlightsText: highlightsLabel(pack, items),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => PackageDetailPage(
+                                        pack: pack,
+                                        allPackages: items,
+                                      ),
                                     ),
-                                  ],
-                                ),
-                                child: PackageCard(
-                                  pack: pack,
-                                  highlightsText:
-                                      highlightsLabel(pack, items),
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => PackageDetailPage(
-                                          pack: pack,
-                                          allPackages: items,
-                                        ),
+                                  );
+                                },
+                                showAdminActions: isSignedIn,
+                                onDelete: () async {
+                                  final repo = PackagesRepository();
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  try {
+                                    await repo.deletePackage(pack.id);
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Deleted "${pack.name}"'),
                                       ),
                                     );
-                                  },
-                                  showAdminActions: isSignedIn,
-                                  onDelete: () async {
-                                    final repo = PackagesRepository();
-                                    final messenger =
-                                        ScaffoldMessenger.of(context);
-                                    try {
-                                      await repo.deletePackage(pack.id);
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                'Deleted "${pack.name}"')),
-                                      );
-                                    } catch (e) {
-                                      messenger.showSnackBar(SnackBar(
-                                          content: Text('Delete failed: $e')));
-                                    }
-                                  },
-                                ),
-                              );
-                            },
-                            childCount: items.length,
-                          ),
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Delete failed: $e'),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            );
+                          }, childCount: items.length),
                         ),
                       ),
                       const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
@@ -239,7 +241,7 @@ Text(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // ✅ FAB "Add Package" réservé à l’admin
+              // ✅ FAB "Add Package" for Admins only
               if (isSignedIn)
                 FutureBuilder<bool>(
                   future: AuthService().isAdmin(),
@@ -255,16 +257,19 @@ Text(
                           backgroundColor: Colors.deepPurple.shade300,
                           child: const Icon(Icons.add, color: Colors.white),
                           onPressed: () async {
-                            final isAdminConfirmed =
-                                await AuthService().isAdmin();
+                            final isAdminConfirmed = await AuthService()
+                                .isAdmin();
                             if (!isAdminConfirmed) {
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Admin rights required')),
+                                  content: Text('Admin rights required'),
+                                ),
                               );
                               return;
                             }
 
+                            if (!context.mounted) return;
                             final messenger = ScaffoldMessenger.of(context);
                             final created = await showModalBottomSheet<bool>(
                               context: context,
@@ -272,7 +277,8 @@ Text(
                               useSafeArea: true,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(24)),
+                                  top: Radius.circular(24),
+                                ),
                               ),
                               builder: (_) => const _CreatePackageSheet(),
                             );
@@ -280,7 +286,8 @@ Text(
                             if (created == true) {
                               messenger.showSnackBar(
                                 const SnackBar(
-                                    content: Text('Package created')),
+                                  content: Text('Package created'),
+                                ),
                               );
                             }
                           },
@@ -290,8 +297,7 @@ Text(
                     );
                   },
                 ),
-
-              // 🗓️ FAB pour réservation — visible pour tous
+              //  FAB "Book Appointment" visible to all
               FloatingActionButton(
                 heroTag: 'fab-calendar',
                 tooltip: 'Book Appointment',
@@ -358,144 +364,148 @@ class _CreatePackageSheetState extends State<_CreatePackageSheet> {
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('Create Package',
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Create Package',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            TextFormField(
-              controller: _priceCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Price label (e.g. "50 CHF")',
-                border: OutlineInputBorder(),
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
               ),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Enter price label'
-                  : null,
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            TextFormField(
-              controller: _durationCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Duration (minutes)',
-                border: OutlineInputBorder(),
+              TextFormField(
+                controller: _priceCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Price label (e.g. "50 CHF")',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Enter price label'
+                    : null,
               ),
-              keyboardType: TextInputType.number,
-              validator: (v) {
-                final n = int.tryParse(v ?? '');
-                if (n == null || n <= 0) return 'Enter a valid number';
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            TextFormField(
-              controller: _badgeCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Badge (optional)',
-                border: OutlineInputBorder(),
+              TextFormField(
+                controller: _durationCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Duration (minutes)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  final n = int.tryParse(v ?? '');
+                  if (n == null || n <= 0) return 'Enter a valid number';
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            TextFormField(
-              controller: _descCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Short description',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty)
-                      ? 'Enter a description'
-                      : null,
-            ),
-            const SizedBox(height: 12),
-
-            TextFormField(
-              controller: _servicesCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Included services (one per line)',
-                hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 6,
-              keyboardType: TextInputType.multiline,
-              validator: (v) =>
-                  _linesToList(v ?? '').isEmpty
-                      ? 'Add at least one service'
-                      : null,
-            ),
-            const SizedBox(height: 12),
-
-            TextFormField(
-              controller: _highlightsCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Highlights (one per line)',
-                hintText: 'e.g.\nQuick dry\nSensitive shampoo',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 4,
-            ),
-
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(
-                child: FilledButton(
-                  child: const Text('Create'),
-                  onPressed: () async {
-                    if (!_formKey.currentState!.validate()) return;
-
-                    FocusScope.of(context).unfocus();
-
-                    final services   = _linesToList(_servicesCtrl.text);
-                    final highlights = _linesToList(_highlightsCtrl.text);
-                    final duration   =
-                        int.parse(_durationCtrl.text.trim());
-
-                    // capture AVANT l'await
-                    final navigator = Navigator.of(context);
-
-                    try {
-                      await _repo.createPackage(
-                        name: _nameCtrl.text.trim(),
-                        shortDescription: _descCtrl.text.trim(),
-                        services: services,
-                        priceLabel: _priceCtrl.text.trim(),
-                        badge: _badgeCtrl.text.trim(),
-                        durationMinutes: duration,
-                        highlights: highlights,
-                        visible: true,
-                      );
-                      navigator.pop(true);
-                    } catch (_) {
-                      navigator.pop(false);
-                    }
-                  },
+              TextFormField(
+                controller: _badgeCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Badge (optional)',
+                  border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  child: const Text('Cancel'),
-                  onPressed: () => Navigator.of(context).pop(false),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Short description',
+                  border: OutlineInputBorder(),
                 ),
+                maxLines: 2,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Enter a description'
+                    : null,
               ),
-            ]),
-          ]),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _servicesCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Included services (one per line)',
+                  hintText: 'e.g.\nBath\nBrushing\nEar cleaning',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 6,
+                keyboardType: TextInputType.multiline,
+                validator: (v) => _linesToList(v ?? '').isEmpty
+                    ? 'Add at least one service'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _highlightsCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Highlights (one per line)',
+                  hintText: 'e.g.\nQuick dry\nSensitive shampoo',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 4,
+              ),
+
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      child: const Text('Create'),
+                      onPressed: () async {
+                        if (!_formKey.currentState!.validate()) return;
+
+                        FocusScope.of(context).unfocus();
+
+                        final services = _linesToList(_servicesCtrl.text);
+                        final highlights = _linesToList(_highlightsCtrl.text);
+                        final duration = int.parse(_durationCtrl.text.trim());
+
+                        // capture AVANT l'await
+                        final navigator = Navigator.of(context);
+
+                        try {
+                          await _repo.createPackage(
+                            name: _nameCtrl.text.trim(),
+                            shortDescription: _descCtrl.text.trim(),
+                            services: services,
+                            priceLabel: _priceCtrl.text.trim(),
+                            badge: _badgeCtrl.text.trim(),
+                            durationMinutes: duration,
+                            highlights: highlights,
+                            visible: true,
+                          );
+                          navigator.pop(true);
+                        } catch (_) {
+                          navigator.pop(false);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      child: const Text('Cancel'),
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -508,6 +518,9 @@ class _CreatePackageSheetState extends State<_CreatePackageSheet> {
         .where((e) => e.isNotEmpty)
         .toList();
     final seen = <String>{};
-    return [for (final s in lines) if (seen.add(s)) s];
+    return [
+      for (final s in lines)
+        if (seen.add(s)) s,
+    ];
   }
 }

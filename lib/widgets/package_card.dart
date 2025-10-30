@@ -41,7 +41,9 @@ class _PackageCardState extends State<PackageCard> {
         child: Card(
           clipBehavior: Clip.hardEdge,
           elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
           child: InkWell(
             onTap: () {
               setState(() => _scale = 0.98);
@@ -86,15 +88,20 @@ class _PackageCardState extends State<PackageCard> {
                                     _Chip(
                                       text: 'Top sales',
                                       foreground: Colors.red.shade800,
-                                      border: Colors.red.withValues(alpha: 0.35),
-                                      background: Colors.red.withValues(alpha: 0.06),
+                                      border: Colors.red.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      background: Colors.red.withValues(
+                                        alpha: 0.06,
+                                      ),
                                     ),
                                   if (p.badge.trim().isNotEmpty)
                                     _Chip(
                                       text: p.badge,
                                       foreground: Colors.black87,
                                       border: Colors.black12,
-                                      background: theme.colorScheme.surface.withValues(alpha: 0.7),
+                                      background: theme.colorScheme.surface
+                                          .withValues(alpha: 0.7),
                                     ),
                                 ],
                               ),
@@ -114,7 +121,9 @@ class _PackageCardState extends State<PackageCard> {
                                   const SizedBox(width: 4),
                                   Text(
                                     '${p.durationMinutes} min',
-                                    style: theme.textTheme.labelSmall?.copyWith(color: Colors.black87),
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: Colors.black87,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -122,7 +131,8 @@ class _PackageCardState extends State<PackageCard> {
 
                               // ===== ADMIN ACTIONS =====
                               StreamBuilder<User?>(
-                                stream: FirebaseAuth.instance.authStateChanges(),
+                                stream: FirebaseAuth.instance
+                                    .authStateChanges(),
                                 builder: (context, snap) {
                                   if (!snap.hasData) {
                                     return const SizedBox.shrink();
@@ -133,7 +143,8 @@ class _PackageCardState extends State<PackageCard> {
                                     builder: (context, adminSnap) {
                                       final isAdmin = adminSnap.data ?? false;
 
-                                      if (!isAdmin || !widget.showAdminActions) {
+                                      if (!isAdmin ||
+                                          !widget.showAdminActions) {
                                         return const SizedBox.shrink();
                                       }
 
@@ -152,38 +163,60 @@ class _PackageCardState extends State<PackageCard> {
                                               size: 18,
                                             ),
                                             padding: EdgeInsets.zero,
-                                            visualDensity:
-                                                const VisualDensity(horizontal: -4, vertical: -4),
-                                            constraints: const BoxConstraints.tightFor(
-                                                width: 28, height: 28),
+                                            visualDensity: const VisualDensity(
+                                              horizontal: -4,
+                                              vertical: -4,
+                                            ),
+                                            constraints:
+                                                const BoxConstraints.tightFor(
+                                                  width: 28,
+                                                  height: 28,
+                                                ),
                                             onPressed: () async {
                                               final isAdminConfirmed =
                                                   await AuthService().isAdmin();
                                               if (!isAdminConfirmed) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                if (!context.mounted) return;
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   const SnackBar(
-                                                      content: Text('Admin rights required')),
+                                                    content: Text(
+                                                      'Admin rights required',
+                                                    ),
+                                                  ),
                                                 );
                                                 return;
                                               }
 
                                               final newValue = !p.isActive;
                                               try {
-                                                await _repo.setActive(p.id, newValue);
+                                                await _repo.setActive(
+                                                  p.id,
+                                                  newValue,
+                                                );
                                                 if (!context.mounted) return;
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   SnackBar(
-                                                    content: Text(newValue
-                                                        ? 'Package enabled'
-                                                        : 'Package disabled'),
+                                                    content: Text(
+                                                      newValue
+                                                          ? 'Package enabled'
+                                                          : 'Package disabled',
+                                                    ),
                                                   ),
                                                 );
                                               } catch (e) {
                                                 if (!context.mounted) return;
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   SnackBar(
-                                                      content: Text(
-                                                          'Error updating status: $e')),
+                                                    content: Text(
+                                                      'Error updating status: $e',
+                                                    ),
+                                                  ),
                                                 );
                                               }
                                             },
@@ -194,22 +227,37 @@ class _PackageCardState extends State<PackageCard> {
                                             tooltip: p.hasDiscount
                                                 ? 'Edit discount (${p.discountPercent}%)'
                                                 : 'Add discount',
-                                            icon: const Icon(Icons.percent, size: 18),
+                                            icon: const Icon(
+                                              Icons.percent,
+                                              size: 18,
+                                            ),
                                             padding: EdgeInsets.zero,
-                                            visualDensity:
-                                                const VisualDensity(horizontal: -4, vertical: -4),
-                                            constraints: const BoxConstraints.tightFor(
-                                                width: 28, height: 28),
+                                            visualDensity: const VisualDensity(
+                                              horizontal: -4,
+                                              vertical: -4,
+                                            ),
+                                            constraints:
+                                                const BoxConstraints.tightFor(
+                                                  width: 28,
+                                                  height: 28,
+                                                ),
                                             onPressed: () async {
                                               final isAdminConfirmed =
                                                   await AuthService().isAdmin();
                                               if (!isAdminConfirmed) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                if (!context.mounted) return;
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   const SnackBar(
-                                                      content: Text('Admin rights required')),
+                                                    content: Text(
+                                                      'Admin rights required',
+                                                    ),
+                                                  ),
                                                 );
                                                 return;
                                               }
+                                              if (!context.mounted) return;
                                               _showDiscountDialog(p);
                                             },
                                           ),
@@ -217,63 +265,104 @@ class _PackageCardState extends State<PackageCard> {
                                           // ✅ Delete
                                           IconButton(
                                             tooltip: 'Delete package',
-                                            icon: const Icon(Icons.delete_outline, size: 18),
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              size: 18,
+                                            ),
                                             padding: EdgeInsets.zero,
-                                            visualDensity:
-                                                const VisualDensity(horizontal: -4, vertical: -4),
-                                            constraints: const BoxConstraints.tightFor(
-                                                width: 28, height: 28),
+                                            visualDensity: const VisualDensity(
+                                              horizontal: -4,
+                                              vertical: -4,
+                                            ),
+                                            constraints:
+                                                const BoxConstraints.tightFor(
+                                                  width: 28,
+                                                  height: 28,
+                                                ),
                                             onPressed: () async {
                                               final isAdminConfirmed =
                                                   await AuthService().isAdmin();
                                               if (!isAdminConfirmed) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                if (!context.mounted) return;
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   const SnackBar(
-                                                      content: Text('Admin rights required')),
+                                                    content: Text(
+                                                      'Admin rights required',
+                                                    ),
+                                                  ),
                                                 );
                                                 return;
                                               }
 
-                                              final confirm = await showDialog<bool>(
-                                                context: context,
-                                                builder: (_) => AlertDialog(
-                                                  title: const Text('Delete package?'),
-                                                  content: Text(
-                                                      'This will permanently delete "${p.name}".'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(context, false),
-                                                      child: const Text('Cancel'),
+                                              if (!context.mounted) return;
+                                              final confirm =
+                                                  await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (_) => AlertDialog(
+                                                      title: const Text(
+                                                        'Delete package?',
+                                                      ),
+                                                      content: Text(
+                                                        'This will permanently delete "${p.name}".',
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                context,
+                                                                false,
+                                                              ),
+                                                          child: const Text(
+                                                            'Cancel',
+                                                          ),
+                                                        ),
+                                                        FilledButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                context,
+                                                                true,
+                                                              ),
+                                                          child: const Text(
+                                                            'Delete',
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    FilledButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(context, true),
-                                                      child: const Text('Delete'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
+                                                  );
 
                                               if (confirm == true) {
                                                 try {
                                                   if (widget.onDelete != null) {
                                                     widget.onDelete!();
                                                   } else {
-                                                    await _repo.deletePackage(p.id);
-                                                    if (!context.mounted) return;
-                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                    await _repo.deletePackage(
+                                                      p.id,
+                                                    );
+                                                    if (!context.mounted) {
+                                                      return;
+                                                    }
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
                                                       SnackBar(
-                                                          content:
-                                                              Text('Deleted "${p.name}"')),
+                                                        content: Text(
+                                                          'Deleted "${p.name}"',
+                                                        ),
+                                                      ),
                                                     );
                                                   }
                                                 } catch (e) {
                                                   if (!context.mounted) return;
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     SnackBar(
-                                                        content:
-                                                            Text('Delete failed: $e')),
+                                                      content: Text(
+                                                        'Delete failed: $e',
+                                                      ),
+                                                    ),
                                                   );
                                                 }
                                               }
@@ -377,7 +466,10 @@ class _PackageCardState extends State<PackageCard> {
                 children: [
                   Row(
                     children: [
-                      SizedBox(width: 44, child: Text('$percent', textAlign: TextAlign.right)),
+                      SizedBox(
+                        width: 44,
+                        child: Text('$percent', textAlign: TextAlign.right),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Slider(
@@ -394,8 +486,10 @@ class _PackageCardState extends State<PackageCard> {
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('End date (optional)',
-                        style: Theme.of(ctx).textTheme.labelMedium),
+                    child: Text(
+                      'End date (optional)',
+                      style: Theme.of(ctx).textTheme.labelMedium,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -416,10 +510,14 @@ class _PackageCardState extends State<PackageCard> {
                               initialDate: endAt ?? now,
                             );
                             if (d == null) return;
+                            if (!ctx.mounted) return;
                             final t = await showTimePicker(
                               context: ctx,
                               initialTime: endAt != null
-                                  ? TimeOfDay(hour: endAt!.hour, minute: endAt!.minute)
+                                  ? TimeOfDay(
+                                      hour: endAt!.hour,
+                                      minute: endAt!.minute,
+                                    )
                                   : const TimeOfDay(hour: 23, minute: 59),
                             );
                             setState(() {
@@ -447,15 +545,21 @@ class _PackageCardState extends State<PackageCard> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Enter 0 to remove discount',
-                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                      style: Theme.of(
+                        ctx,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
                   ),
                 ],
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
                 FilledButton(
-                  onPressed: () => Navigator.pop(ctx, (percent: percent, endAt: endAt)),
+                  onPressed: () =>
+                      Navigator.pop(ctx, (percent: percent, endAt: endAt)),
                   child: const Text('Save'),
                 ),
               ],
@@ -478,12 +582,14 @@ class _PackageCardState extends State<PackageCard> {
         );
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Discount updated')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Discount updated')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Update failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
     }
   }
 
@@ -519,10 +625,10 @@ class _Chip extends StatelessWidget {
         text,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-              color: foreground,
-            ),
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: foreground,
+        ),
       ),
     );
   }
@@ -535,11 +641,16 @@ class _PricePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasDiscount = pack.hasDiscount && pack.basePrice != null && pack.basePrice! > 0;
+    final hasDiscount =
+        pack.hasDiscount && pack.basePrice != null && pack.basePrice! > 0;
 
     String suffix() {
       final m = RegExp(r'^\s*([\d.,]+)\s*(.*)$').firstMatch(pack.priceLabel);
-      return (m != null ? m.group(2) : '')?.trim().replaceAll(RegExp(r'\s+'), ' ') ?? '';
+      return (m != null ? m.group(2) : '')?.trim().replaceAll(
+            RegExp(r'\s+'),
+            ' ',
+          ) ??
+          '';
     }
 
     String fmt(double v) {
@@ -590,11 +701,16 @@ class _PricePill extends StatelessWidget {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                            border: Border.all(
+                              color: Colors.red.withValues(alpha: 0.4),
+                            ),
                           ),
                           child: Text(
                             '-${pack.discountPercent}%',

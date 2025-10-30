@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_app/pages/StaffNavigation.dart';
+import 'package:flutter_app/pages/staff_navigation.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'pages/admin/admin_dashboard.dart';
