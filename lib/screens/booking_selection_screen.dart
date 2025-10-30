@@ -83,52 +83,6 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Service selection
-                  _buildSectionHeader('Individual Services'),
-                  const SizedBox(height: 12),
-
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _services.length,
-                    itemBuilder: (context, index) {
-                      final service = _services[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: ListTile(
-                          title: Text(
-                            service.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            '${service.description}\nDuration: ${service.duration} minutes',
-                          ),
-                          trailing: Text(
-                            '${service.price.toStringAsFixed(2)} CHF',
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PetSelectionScreen(service: service),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
-
                   // Recommendation section
                   if (_recommendedPackage != null) ...[
                     _buildSectionHeader('🌟 Recommended for You'),
@@ -189,7 +143,7 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                                 // Header row: Badge + Duration
                                 Row(
                                   children: [
-                                    // Badge
+                                    // Package badge
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -197,77 +151,158 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                                       ),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: Colors.black12,
-                                        ),
-                                        color: Colors.grey[100],
+                                        color: Colors.blue.shade600,
                                       ),
                                       child: Text(
-                                        package.badge,
+                                        package.badge.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    // Duration
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.grey.shade200,
+                                      ),
+                                      child: Text(
+                                        '${package.durationMinutes} min',
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
-                                    const Spacer(),
-                                    // Duration
-                                    const Icon(Icons.schedule, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${package.durationMinutes} min',
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                // Package name
-                                Text(
-                                  package.name,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+
+                                // Package name and price
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        package.name,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      package.priceLabel,
+                                      style: TextStyle(
+                                        color: Theme.of(context).primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 8),
-                                // Short description
+
+                                // Description
                                 Text(
                                   package.shortDescription,
                                   style: TextStyle(
+                                    color: Colors.grey.shade700,
                                     fontSize: 14,
-                                    color: Colors.grey[700],
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                // Price (at bottom)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFFFC107,
-                                    ).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(100),
-                                    border: Border.all(
-                                      color: const Color(
-                                        0xFFFFC107,
-                                      ).withValues(alpha: 0.6),
-                                      width: 1,
+
+                                // Services list
+                                if (package.services.isNotEmpty) ...[
+                                  Text(
+                                    'Included services:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade800,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                  child: Text(
-                                    package.priceLabel,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                  const SizedBox(height: 4),
+                                  ...package.services.map(
+                                    (service) => Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            size: 16,
+                                            color: Colors.green.shade600,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              service,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Service selection - moved to bottom
+                  _buildSectionHeader('Individual Services'),
+                  const SizedBox(height: 12),
+
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _services.length,
+                    itemBuilder: (context, index) {
+                      final service = _services[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            service.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${service.description}\nDuration: ${service.duration} minutes',
+                          ),
+                          trailing: Text(
+                            '${service.price.toStringAsFixed(2)} CHF',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PetSelectionScreen(service: service),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
@@ -333,60 +368,99 @@ class _BookingSelectionScreenState extends State<BookingSelectionScreen> {
                       child: const Text(
                         'RECOMMENDED',
                         style: TextStyle(
+                          color: Colors.orange,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange,
                         ),
                       ),
                     ),
                     const Spacer(),
                     // Duration
-                    const Icon(Icons.schedule, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${package.durationMinutes} min',
-                      style: const TextStyle(fontSize: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.shade200,
+                      ),
+                      child: Text(
+                        '${package.durationMinutes} min',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Package name
-                Text(
-                  package.name,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+
+                // Package name and price
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        package.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      package.priceLabel,
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                // Short description
+
+                // Description
                 Text(
                   package.shortDescription,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
-                // Price
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFC107).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: const Color(0xFFFFC107).withValues(alpha: 0.6),
-                      width: 1,
+
+                // Services list
+                if (package.services.isNotEmpty) ...[
+                  Text(
+                    'Included services:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade800,
+                      fontSize: 14,
                     ),
                   ),
-                  child: Text(
-                    package.priceLabel,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 4),
+                  ...package.services.map(
+                    (service) => Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green.shade600,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              service,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
