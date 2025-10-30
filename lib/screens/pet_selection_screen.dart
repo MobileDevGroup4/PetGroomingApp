@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+
 import '../models/pet.dart';
 import '../services/pet_service.dart';
 import '../screens/pets/add_pet_page.dart';
-import 'date_time_screen.dart';
 import '../models/service.dart';
 import '../models/package.dart';
+import 'date_time_screen.dart';
 
 class PetSelectionScreen extends StatefulWidget {
   final Service? service;
@@ -97,82 +100,120 @@ class _PetSelectionScreenState extends State<PetSelectionScreen> {
             ),
         ],
       ),
-      body: _pets.isEmpty ? _buildNoPetsWidget() : _buildPetsList(_pets),
+      body: _pets.isEmpty
+          ? _buildNoPetsView()
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Select a pet for $itemName',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _pets.length,
+                    itemBuilder: (context, index) {
+                      final pet = _pets[index];
+                      final isSelected = _selectedPet?.id == pet.id;
+
+                      return _buildPetTile(pet, isSelected, user.uid);
+                    },
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
-  Widget _buildNoPetsWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.pets, size: 80, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text('You need to add a pet first to book $itemName'),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddPetPage()),
-              );
-              _loadPets(); // Reload pets after adding
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add Pet'),
+  Widget _buildPetTile(Pet pet, bool isSelected, String userId) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: isSelected ? 4 : 1,
+      child: ListTile(
+        leading: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('petAvatars')
+              .doc('${userId}_${pet.id}')
+              .snapshots(),
+          builder: (context, snap) {
+            Uint8List? bytes;
+            final data = snap.data?.data();
+            final raw = data?['data'];
+            if (raw is Uint8List) bytes = raw;
+            if (raw is List) {
+              bytes = Uint8List.fromList(raw.cast<int>());
+            }
+
+            final img = (bytes != null && bytes.isNotEmpty)
+                ? MemoryImage(bytes)
+                : null;
+
+            return CircleAvatar(
+              radius: 24,
+              backgroundImage: img,
+              backgroundColor: Colors.blue.shade100,
+              child: img == null
+                  ? Icon(Icons.pets, color: Colors.blue.shade700, size: 24)
+                  : null,
+            );
+          },
+        ),
+        title: Text(
+          pet.name,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
-        ],
+        ),
+        subtitle: Text('${pet.breed} • ${pet.age} years old • ${pet.size}'),
+        trailing: isSelected
+            ? Icon(Icons.check_circle, color: Colors.green.shade600)
+            : null,
+        selected: isSelected,
+        selectedTileColor: Colors.blue.shade50,
+        onTap: () {
+          setState(() {
+            _selectedPet = pet;
+          });
+        },
       ),
     );
   }
 
-  Widget _buildPetsList(List<Pet> pets) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'Select a pet for $itemName',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+  Widget _buildNoPetsView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.pets, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              'No pets found',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You need to add a pet before booking an appointment.',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddPetPage()),
+                ).then((_) => _loadPets());
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Pet'),
+            ),
+          ],
         ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: pets.length,
-            itemBuilder: (context, index) {
-              final pet = pets[index];
-              final isSelected = _selectedPet?.id == pet.id;
-
-              return Card(
-                elevation: isSelected ? 4 : 1,
-                color: isSelected
-                    ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                    : null,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      pet.name.isNotEmpty ? pet.name[0].toUpperCase() : 'P',
-                    ),
-                  ),
-                  title: Text(pet.name),
-                  subtitle: Text(
-                    '${pet.breed} • ${pet.age} years old • ${pet.size}',
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      _selectedPet = pet;
-                    });
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

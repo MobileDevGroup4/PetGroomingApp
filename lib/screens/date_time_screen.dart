@@ -38,6 +38,10 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
   // This will hold the generated available slots
   late Future<List<String>> _availableTimeSlotsFuture;
 
+  // Date range limits - 3 months from today
+  late DateTime _firstDay;
+  late DateTime _lastDay;
+
   // Helper getters to know what we are booking
   bool get isService => widget.service != null;
   bool get isPackage => widget.package != null;
@@ -50,6 +54,11 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Set date range limits
+    _firstDay = DateTime.now();
+    _lastDay = DateTime.now().add(const Duration(days: 90)); // 3 months
+
     _selectedDay = _focusedDay;
     // Fetch slots for the initially selected day
     _availableTimeSlotsFuture = _getAvailableTimeSlots(_selectedDay!);
@@ -72,77 +81,67 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
     // 2. Generate all potential time slots for the day
     final allPossibleSlots = _generateAllTimeSlots(date);
 
-    // 3. Filter out slots that are already booked
-    final availableSlots = allPossibleSlots.where((slot) {
-      final slotDateTime = _parseSlot(date, slot);
-      final slotEndTime = slotDateTime.add(
-        Duration(minutes: itemDuration + 10),
-      );
+    // 3. Filter out slots that conflict with existing bookings
+    final availableSlots = <String>[];
 
-      // Check if the potential slot overlaps with any existing booking
+    for (final slot in allPossibleSlots) {
+      final slotStartTime = _parseTimeSlot(date, slot);
+      final slotEndTime = slotStartTime.add(Duration(minutes: itemDuration));
+
+      bool isConflict = false;
       for (final booking in existingBookings) {
         final bookingStart = booking.startTime.toDate();
         final bookingEnd = booking.endTime.toDate();
 
-        // overlap check:
-        // (SlotStart < BookingEnd) and (SlotEnd > BookingStart)
-        if (slotDateTime.isBefore(bookingEnd) &&
+        // Check if there's any overlap
+        if (slotStartTime.isBefore(bookingEnd) &&
             slotEndTime.isAfter(bookingStart)) {
-          return false; // This slot is unavailable
+          isConflict = true;
+          break;
         }
       }
-      return true; // This slot is available
-    }).toList();
+
+      if (!isConflict) {
+        availableSlots.add(slot);
+      }
+    }
 
     return availableSlots;
   }
 
-  // Helper to generate slots from 9:00 AM to 5:00 PM
-  // Slots are generated based on service duration + buffer time
   List<String> _generateAllTimeSlots(DateTime date) {
-    final List<String> slots = [];
+    final slots = <String>[];
+    const startHour = 9; // 9:00 AM
+    const endHour = 17; // 5:00 PM
+    const slotInterval = 40; // 40 minutes between each slot
 
-    // Service duration + 10 minute buffer
-    final int slotInterval = itemDuration + 10;
+    for (int hour = startHour; hour < endHour; hour++) {
+      for (int minute = 0; minute < 60; minute += slotInterval) {
+        final timeString =
+            '${hour.toString().padLeft(2, '0')}:'
+            '${minute.toString().padLeft(2, '0')}';
 
-    // Start time: 9:00 AM
-    int startHour = 9;
-    int startMinute = 0;
+        // Make sure the slot + duration doesn't exceed end hour
+        final slotTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          hour,
+          minute,
+        );
+        final slotEndTime = slotTime.add(Duration(minutes: itemDuration));
 
-    // End time: 5:00 PM (17:00)
-    int endHour = 17;
-
-    DateTime currentSlot = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      startHour,
-      startMinute,
-    );
-
-    final DateTime endTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      endHour,
-      0,
-    );
-
-    while (currentSlot.isBefore(endTime)) {
-      // Format as "HH:mm" (e.g., "09:00", "14:30")
-      final String timeString =
-          '${currentSlot.hour.toString().padLeft(2, '0')}:${currentSlot.minute.toString().padLeft(2, '0')}';
-      slots.add(timeString);
-
-      // Move to next slot (service duration + buffer)
-      currentSlot = currentSlot.add(Duration(minutes: slotInterval));
+        if (slotEndTime.hour < endHour ||
+            (slotEndTime.hour == endHour && slotEndTime.minute == 0)) {
+          slots.add(timeString);
+        }
+      }
     }
 
     return slots;
   }
 
-  // Helper to convert a time string like "09:30" to a full DateTime object
-  DateTime _parseSlot(DateTime date, String timeSlot) {
+  DateTime _parseTimeSlot(DateTime date, String timeSlot) {
     final parts = timeSlot.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
@@ -151,14 +150,14 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
 
   Widget _buildTimeSlotGrid(List<String> slots) {
     return Container(
-      height: 200,
+      height: 160, // Reduced height to make it more compact
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          childAspectRatio: 2.5,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+          childAspectRatio: 2.2, // Reduced aspect ratio for more compact tiles
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
         ),
         itemCount: slots.length,
         itemBuilder: (context, index) {
@@ -174,7 +173,7 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
             child: Container(
               decoration: BoxDecoration(
                 color: isSelected ? Colors.blue : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: isSelected
                       ? Colors.blue.shade800
@@ -186,6 +185,7 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                   slot,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
+                    fontSize: 12, // Slightly smaller font
                     color: isSelected ? Colors.white : Colors.black,
                   ),
                 ),
@@ -223,170 +223,252 @@ class _DateTimeScreenState extends State<DateTimeScreen> {
                 children: [
                   Text(
                     'Booking for: ${widget.selectedPet.name}',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Text('Service: $itemName'),
-                  Text('Duration: $itemDuration minutes'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Service: $itemName',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  Text(
+                    'Duration: $itemDuration minutes',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // Calendar
-            Text('Select Date', style: Theme.of(context).textTheme.titleMedium),
+            // Calendar section
+            const Text(
+              'Select Date',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            TableCalendar(
-              firstDay: DateTime.now(),
-              lastDay: DateTime.now().add(const Duration(days: 90)),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
+
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: TableCalendar<dynamic>(
+                firstDay: _firstDay,
+                lastDay: _lastDay,
+                focusedDay: _focusedDay,
+                calendarFormat: CalendarFormat.month,
+                startingDayOfWeek: StartingDayOfWeek.monday,
+
+                // Removed the header style that was showing "2 weeks"
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible:
+                      false, // This removes the "2 weeks" button
+                  titleCentered: true,
+                  leftChevronIcon: Icon(Icons.chevron_left),
+                  rightChevronIcon: Icon(Icons.chevron_right),
+                ),
+
+                calendarStyle: CalendarStyle(
+                  outsideDaysVisible: false,
+                  weekendTextStyle: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 14,
+                  ),
+                  holidayTextStyle: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 14,
+                  ),
+                  defaultTextStyle: const TextStyle(
+                    fontSize: 14,
+                  ), // Compact text
+                  selectedDecoration: BoxDecoration(
+                    color: Colors.blue.shade600,
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Colors.blue.shade300,
+                    shape: BoxShape.circle,
+                  ),
+                  markersMaxCount: 1,
+                  markerDecoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+
+                onDaySelected: (selectedDay, focusedDay) {
+                  if (!isSameDay(_selectedDay, selectedDay)) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                      _selectedTimeSlot = null; // Reset time selection
+                      _availableTimeSlotsFuture = _getAvailableTimeSlots(
+                        selectedDay,
+                      );
+                    });
+                  }
+                },
+
+                onPageChanged: (focusedDay) {
                   _focusedDay = focusedDay;
-                  _selectedTimeSlot = null; // Reset time selection
-                  _availableTimeSlotsFuture = _getAvailableTimeSlots(
-                    selectedDay,
-                  );
-                });
-              },
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: Colors.blue.shade300,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
+                },
+
+                // Make calendar more compact
+                daysOfWeekHeight: 35,
+                rowHeight: 35,
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Time Slots
-            Text(
+            const SizedBox(height: 16),
+
+            // Available times section
+            const Text(
               'Available Times',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
+
             FutureBuilder<List<String>>(
               future: _availableTimeSlotsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
+                  return const SizedBox(
+                    height: 160,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return SizedBox(
+                    height: 160,
+                    child: Center(
+                      child: Text(
+                        'Error loading time slots: ${snapshot.error}',
+                      ),
                     ),
                   );
                 }
 
                 final slots = snapshot.data ?? [];
                 if (slots.isEmpty) {
-                  return Container(
-                    height: 100,
-                    padding: const EdgeInsets.all(16),
-                    child: const Center(
-                      child: Text(
-                        'No available slots for this date',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
+                  return const SizedBox(
+                    height: 160,
+                    child: Center(
+                      child: Text('No available time slots for this date'),
                     ),
                   );
                 }
+
                 return _buildTimeSlotGrid(slots);
               },
             ),
-            const SizedBox(height: 32),
 
-            // Notes Section
-            Text(
+            const SizedBox(height: 16),
+
+            // Special Notes section - now visible with compact layout above
+            const Text(
               'Special Notes (Optional)',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Any special requests or notes for the groomer...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: TextField(
+                controller: _notesController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Any special requests or notes for the groomer...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(12),
                 ),
-                contentPadding: const EdgeInsets.all(16),
               ),
             ),
-            const SizedBox(height: 32),
 
-            // Confirm Button
-            Center(
+            const SizedBox(height: 24),
+
+            // Book appointment button
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
+                onPressed: _selectedDay != null && _selectedTimeSlot != null
+                    ? _bookAppointment
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                onPressed: (_selectedDay == null || _selectedTimeSlot == null)
-                    ? null
-                    : () async {
-                        final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-                        final navigator = Navigator.of(context);
-
-                        final notes = _notesController.text.trim();
-
-                        try {
-                          final selectedStartTime = _parseSlot(
-                            _selectedDay!,
-                            _selectedTimeSlot!,
-                          );
-
-                          if (isService) {
-                            await _bookingService
-                                .createServiceBookingWithNotification(
-                                  service: widget.service!,
-                                  startTime: selectedStartTime,
-                                  petId: widget.selectedPet.id,
-                                  notes: notes,
-                                );
-                          } else {
-                            await _bookingService
-                                .createPackageBookingWithNotification(
-                                  package: widget.package!,
-                                  startTime: selectedStartTime,
-                                  petId: widget.selectedPet.id,
-                                  notes: notes,
-                                );
-                          }
-
-                          if (mounted) {
-                            scaffoldMessenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  notes.isEmpty
-                                      ? 'Booking confirmed successfully!'
-                                      : 'Booking confirmed with notes saved!',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            navigator.popUntil((route) => route.isFirst);
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            scaffoldMessenger.showSnackBar(
-                              SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                child: const Text('Confirm Booking'),
+                child: const Text(
+                  'Book Appointment',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _bookAppointment() async {
+    if (_selectedDay == null || _selectedTimeSlot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select date and time')),
+      );
+      return;
+    }
+
+    try {
+      final startTime = _parseTimeSlot(_selectedDay!, _selectedTimeSlot!);
+
+      if (isService && widget.service != null) {
+        await _bookingService.createServiceBookingWithNotification(
+          service: widget.service!,
+          startTime: startTime,
+          petId: widget.selectedPet.id,
+          notes: _notesController.text.trim(),
+        );
+      } else if (isPackage && widget.package != null) {
+        await _bookingService.createPackageBookingWithNotification(
+          package: widget.package!,
+          startTime: startTime,
+          petId: widget.selectedPet.id,
+          notes: _notesController.text.trim(),
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Appointment booked successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate back to appointments or home
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to book appointment: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
