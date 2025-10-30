@@ -347,7 +347,7 @@ class _BookingsSection extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: docs.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {
                     final m = docs[i].data();
                     return _BookingTile(m: m);
@@ -419,7 +419,7 @@ class _StatusChip extends StatelessWidget {
       bg = cs.secondaryContainer;
       fg = cs.onSecondaryContainer;
     } else {
-      bg = cs.surfaceVariant;
+      bg = cs.surfaceContainerHighest;
       fg = cs.onSurfaceVariant;
     }
 

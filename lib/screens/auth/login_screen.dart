@@ -132,23 +132,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 switch (error.code) {
                   case 'user-not-found':
                     errorMessage = 'No user found with this email';
-                    break;
                   case 'wrong-password':
                     errorMessage = 'Wrong password';
-                    break;
                   case 'invalid-email':
                     errorMessage = 'Invalid email address';
-                    break;
                   case 'user-disabled':
                     errorMessage = 'This user account has been disabled';
-                    break;
                   case 'invalid-credential':
                     errorMessage = 'Invalid email or password';
-                    break;
                   case 'too-many-requests':
                     errorMessage =
                         'Too many failed attempts. Please try again later';
-                    break;
                   default:
                     errorMessage = error.message ?? 'Login failed';
                 }
