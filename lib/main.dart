@@ -1,34 +1,57 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_app/pages/appointments.dart';
-import 'package:flutter_app/pages/home.dart';
-import 'package:flutter_app/pages/profile.dart';
-import 'package:flutter_app/pages/store.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_app/pages/staff_navigation.dart';
 import 'firebase_options.dart';
-import 'package:flutter_app/models/pet.dart';
-import 'package:flutter_app/services/pet_service.dart';
+import 'package:flutter/material.dart';
+import 'pages/admin/admin_dashboard.dart';
+import 'pages/appointments.dart';
+import 'pages/home.dart';
+import 'pages/notifications.dart';
+import 'pages/profile.dart';
+import 'pages/store.dart';
 import 'screens/auth/login_screen.dart';
 import 'services/auth_service.dart';
-import 'pages/admin_dashboard.dart';
+import 'services/notification_service.dart';
+import 'models/pet.dart';
+import 'services/pet_service.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // If your Firestore rules require auth to read/write, uncomment this:
-  // await FirebaseAuth.instance.signInAnonymously();
-
   runApp(const App());
 }
 
 class App extends StatelessWidget {
   const App({super.key});
 
+  Future<bool> _checkIfStaff(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data['isStaff'] != null) {
+          return data['isStaff'] as bool;
+        }
+      }
+    } catch (e) {
+      print('Error checking staff status: $e');
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Pet Grooming App',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snap) {
@@ -40,26 +63,45 @@ class App extends StatelessWidget {
 
           final user = snap.data;
           if (user == null) {
-            // guest UI, no pets provider
             return const Navigation();
           }
 
-          return StreamProvider<List<Pet>>.value(
-            value: PetService(user.uid).pets,
-            initialData: const [],
-            child: StreamBuilder<bool>(
-              stream: AuthService().adminRoleChanges,
-              initialData: false,
-              builder: (context, adminSnap) {
-                if (adminSnap.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final isAdmin = adminSnap.data ?? false;
-                return Navigation(isAdmin: isAdmin); // <-- pass it in
-              },
-            ),
+          // Check if user is staff
+          return FutureBuilder<bool>(
+            future: _checkIfStaff(user.uid),
+            builder: (context, staffSnapshot) {
+              if (staffSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final isStaff = staffSnapshot.data ?? false;
+
+              if (isStaff) {
+                // Staff users get their own dedicated navigation
+                return const StaffNavigation();
+              }
+
+              // Regular users get normal navigation with pets and admin check
+              return StreamProvider<List<Pet>>.value(
+                value: PetService(user.uid).pets,
+                initialData: const [],
+                child: StreamBuilder<bool>(
+                  stream: AuthService().adminRoleChanges,
+                  initialData: false,
+                  builder: (context, adminSnap) {
+                    if (adminSnap.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final isAdmin = adminSnap.data ?? false;
+                    return Navigation(isAdmin: isAdmin);
+                  },
+                ),
+              );
+            },
           );
         },
       ),
@@ -88,7 +130,6 @@ class _NavigationState extends State<Navigation> {
         final user = authSnapshot.data;
         final bool isLoggedIn = user != null;
 
-        // -------- Destinations (tabs) --------
         final destinations = <NavigationDestination>[
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -99,7 +140,10 @@ class _NavigationState extends State<Navigation> {
               icon: Icon(Icons.collections_bookmark),
               label: 'Appointments',
             ),
-          const NavigationDestination(icon: Icon(Icons.store), label: 'Store'),
+          const NavigationDestination(
+            icon: Icon(Icons.store_outlined),
+            label: 'Store',
+          ),
           if (!widget.isAdmin)
             const NavigationDestination(
               icon: Icon(Icons.person_outline),
@@ -115,7 +159,7 @@ class _NavigationState extends State<Navigation> {
         final pages = <Widget>[
           const Home(),
           if (isLoggedIn) Appointments(theme: theme),
-          Store(theme: theme),
+          const StorePage(),
           if (!widget.isAdmin) Profile(theme: theme),
           if (widget.isAdmin) const AdminDashboard(),
         ];
@@ -126,7 +170,33 @@ class _NavigationState extends State<Navigation> {
           appBar: AppBar(
             automaticallyImplyLeading: false,
             actions: [
-              if (!isLoggedIn)
+              if (isLoggedIn) ...[
+                StreamBuilder<int>(
+                  stream: NotificationService().getUnreadCount(),
+                  builder: (context, snapshot) {
+                    final unreadCount = snapshot.data ?? 0;
+                    return IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsPage(),
+                          ),
+                        );
+                      },
+                      icon: Badge(
+                        isLabelVisible: unreadCount > 0,
+                        label: Text('$unreadCount'),
+                        child: const Icon(Icons.notifications),
+                      ),
+                    );
+                  },
+                ),
+                TextButton.icon(
+                  onPressed: () => _showLogoutDialog(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                ),
+              ] else
                 TextButton.icon(
                   onPressed: () {
                     Navigator.of(context).push(
@@ -135,12 +205,6 @@ class _NavigationState extends State<Navigation> {
                   },
                   icon: const Icon(Icons.login),
                   label: const Text('Login'),
-                )
-              else
-                TextButton.icon(
-                  onPressed: () => _showLogoutDialog(context),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
                 ),
             ],
           ),
@@ -180,7 +244,7 @@ class _NavigationState extends State<Navigation> {
                 try {
                   await AuthService().logout();
 
-                  // ✅ Reset tab to Home after logout to avoid invalid index
+                  // Reset tab to Home after logout to avoid invalid index
                   if (mounted) {
                     setState(() {
                       currentPageIndex = 0;
