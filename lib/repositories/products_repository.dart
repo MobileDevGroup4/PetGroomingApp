@@ -1,3 +1,4 @@
+// lib/repositories/products_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/product.dart';
@@ -117,10 +118,74 @@ class ProductsRepository {
         'imageUrl': imageUrl,
         'category': category,
         'inStock': inStock,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
       return docRef.id;
     } catch (e) {
       print('Error creating product: $e');
+      rethrow;
+    }
+  }
+
+  // Update an existing product
+  Future<void> updateProduct(
+    String id, {
+    required String name,
+    required String description,
+    required double price,
+    required String imageUrl,
+    required String category,
+    required bool inStock,
+  }) async {
+    try {
+      await _collection.doc(id).update({
+        'name': name,
+        'description': description,
+        'price': price,
+        'imageUrl': imageUrl,
+        'category': category,
+        'inStock': inStock,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error updating product: $e');
+      rethrow;
+    }
+  }
+
+  // Delete a product
+  Future<void> deleteProduct(String id) async {
+    try {
+      await _collection.doc(id).delete();
+    } catch (e) {
+      print('Error deleting product: $e');
+      rethrow;
+    }
+  }
+
+  // Update stock status only
+  Future<void> updateStockStatus(String id, bool inStock) async {
+    try {
+      await _collection.doc(id).update({
+        'inStock': inStock,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error updating stock status: $e');
+      rethrow;
+    }
+  }
+
+  // Update price only
+  Future<void> updatePrice(String id, double price) async {
+    try {
+      await _collection.doc(id).update({
+        'price': price,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error updating price: $e');
       rethrow;
     }
   }
