@@ -35,9 +35,10 @@ class _AdminRegisterStaffCardState extends State<AdminRegisterStaffCard> {
       final uid = await StaffRegistrationService.createAuthUserAndProfile(
         name: _name.text,
         email: _email.text,
-        tempPassword: _tempPw.text, // REQUIRED now
+        tempPassword: _tempPw.text,
         phone: _phone.text.isEmpty ? null : _phone.text,
         address: _address.text.isEmpty ? null : _address.text,
+        sendVerification: true,
       );
 
       if (!mounted) return;
@@ -143,7 +144,6 @@ class _AdminRegisterStaffCardState extends State<AdminRegisterStaffCard> {
               ),
               const SizedBox(height: 16),
 
-              // Submit
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
