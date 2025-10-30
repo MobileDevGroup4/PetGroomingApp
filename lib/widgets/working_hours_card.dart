@@ -19,7 +19,7 @@ class WorkingHoursCard extends StatelessWidget {
     'Thursday',
     'Friday',
     'Saturday',
-    'Sunday'
+    'Sunday',
   ];
 
   void _toggleDay(String day, bool value) {
@@ -32,17 +32,26 @@ class WorkingHoursCard extends StatelessWidget {
     onWorkingHoursChanged(updated);
   }
 
-  Future<void> _selectTime(BuildContext context, String day, bool isStart) async {
-    final currentTime = workingHours[day]?[isStart ? 'startTime' : 'endTime'] ?? '09:00';
+  Future<void> _selectTime(
+    BuildContext context,
+    String day,
+    bool isStart,
+  ) async {
+    final currentTime =
+        workingHours[day]?[isStart ? 'startTime' : 'endTime'] ?? '09:00';
     final parts = currentTime.split(':');
 
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1])),
+      initialTime: TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      ),
     );
 
     if (picked != null) {
-      final timeString = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      final timeString =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       final updated = Map<String, Map<String, dynamic>>.from(workingHours);
       updated[day]![isStart ? 'startTime' : 'endTime'] = timeString;
       onWorkingHoursChanged(updated);
@@ -58,7 +67,7 @@ class WorkingHoursCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -84,11 +93,9 @@ class WorkingHoursCard extends StatelessWidget {
   }
 
   Widget _buildDayRow(BuildContext context, String day) {
-    final data = workingHours[day] ?? {
-      'isWorking': false,
-      'startTime': '09:00',
-      'endTime': '17:00',
-    };
+    final data =
+        workingHours[day] ??
+        {'isWorking': false, 'startTime': '09:00', 'endTime': '17:00'};
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -96,7 +103,10 @@ class WorkingHoursCard extends StatelessWidget {
         children: [
           SizedBox(
             width: 100,
-            child: Text(day, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: Text(
+              day,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
           Switch(
             value: data['isWorking'] ?? false,
@@ -112,7 +122,10 @@ class WorkingHoursCard extends StatelessWidget {
                     child: InkWell(
                       onTap: () => _selectTime(context, day, true),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green.shade50,
                           borderRadius: BorderRadius.circular(8),
@@ -133,7 +146,10 @@ class WorkingHoursCard extends StatelessWidget {
                     child: InkWell(
                       onTap: () => _selectTime(context, day, false),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green.shade50,
                           borderRadius: BorderRadius.circular(8),

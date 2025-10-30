@@ -13,14 +13,19 @@ Widget buildProfileAvatar({
     children: [
       CircleAvatar(
         radius: 60,
-        backgroundColor: primaryColor.withOpacity(0.2),
+        backgroundColor: primaryColor.withValues(alpha: 0.2),
         backgroundImage: imageUrl != null
             ? NetworkImage(imageUrl)
-            : (imageBytes != null ? MemoryImage(imageBytes) : null) as ImageProvider<Object>?,
+            : (imageBytes != null ? MemoryImage(imageBytes) : null)
+                  as ImageProvider<Object>?,
         child: (imageUrl == null && imageBytes == null)
             ? Text(
                 name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: primaryColor),
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                ),
               )
             : null,
       ),
@@ -45,7 +50,7 @@ Widget buildStaffBadge(Color primaryColor) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     decoration: BoxDecoration(
-      color: primaryColor.withOpacity(0.2),
+      color: primaryColor.withValues(alpha: 0.2),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Row(
@@ -53,7 +58,10 @@ Widget buildStaffBadge(Color primaryColor) {
       children: [
         Icon(Icons.verified, size: 16, color: primaryColor),
         const SizedBox(width: 4),
-        Text('Staff Member', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+        Text(
+          'Staff Member',
+          style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+        ),
       ],
     ),
   );
@@ -91,7 +99,7 @@ Widget buildInfoCard({
       borderRadius: BorderRadius.circular(12),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
+          color: Colors.black.withValues(alpha: 0.05),
           blurRadius: 10,
           offset: const Offset(0, 2),
         ),
@@ -104,7 +112,10 @@ Widget buildInfoCard({
           children: [
             Icon(icon, color: primaryColor),
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         const Divider(height: 24),

@@ -42,7 +42,7 @@ class BookingCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -60,39 +60,61 @@ class BookingCard extends StatelessWidget {
                   child: Text(
                     _getInitial(userName),
                     style: const TextStyle(
-                        color: Color(0xFF4CAF50),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18),
+                      color: Color(0xFF4CAF50),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(userName.isEmpty ? 'Unknown User' : userName,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text(formatDate(startTime),
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    Text(
+                      userName.isEmpty ? 'Unknown User' : userName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      formatDate(startTime),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(serviceName.isEmpty ? 'Unknown Service' : serviceName,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black54)),
+            Text(
+              serviceName.isEmpty ? 'Unknown Service' : serviceName,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black54,
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _buildTimeCard(
-                      'Check In', formatTime(startTime), 'On time', const Color(0xFF4CAF50), Icons.login),
+                    'Check In',
+                    formatTime(startTime),
+                    'On time',
+                    const Color(0xFF4CAF50),
+                    Icons.login,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTimeCard(
-                      'Check Out', formatTime(endTime), 'On time', const Color(0xFFFF6B9D), Icons.logout),
+                    'Check Out',
+                    formatTime(endTime),
+                    'On time',
+                    const Color(0xFFFF6B9D),
+                    Icons.logout,
+                  ),
                 ),
               ],
             ),
@@ -105,24 +127,41 @@ class BookingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeCard(String label, String time, String status, Color color, IconData icon) {
+  Widget _buildTimeCard(
+    String label,
+    String time,
+    String status,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-          ]),
+          Row(
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          Text(time, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          Text(status, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text(
+            time,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            status,
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          ),
         ],
       ),
     );

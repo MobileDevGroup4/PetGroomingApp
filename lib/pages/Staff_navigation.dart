@@ -177,7 +177,10 @@ class _StaffNavigationState extends State<StaffNavigation> {
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryPurple, primaryPurple.withOpacity(0.85)],
+                      colors: [
+                        primaryPurple,
+                        primaryPurple.withValues(alpha: 0.85),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -186,7 +189,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryPurple.withOpacity(0.3),
+                        color: primaryPurple.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -204,7 +207,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                       // Avatar
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
                         backgroundImage: _headerImageUrl != null
                             ? NetworkImage(_headerImageUrl!)
                             : null,
@@ -240,7 +243,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                             Text(
                               today,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 13,
                               ),
                             ),
@@ -268,7 +271,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
             currentPageIndex = index;
           });
         },
-        indicatorColor: primaryPurple.withOpacity(0.2),
+        indicatorColor: primaryPurple.withValues(alpha: 0.2),
         selectedIndex: currentPageIndex,
         destinations: destinations,
       ),

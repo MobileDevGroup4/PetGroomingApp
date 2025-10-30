@@ -23,7 +23,7 @@ class DaysOffCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -36,9 +36,16 @@ class DaysOffCard extends StatelessWidget {
               padding: const EdgeInsets.all(32),
               child: Column(
                 children: [
-                  Icon(Icons.event_available, size: 64, color: Colors.grey.shade300),
+                  Icon(
+                    Icons.event_available,
+                    size: 64,
+                    color: Colors.grey.shade300,
+                  ),
                   const SizedBox(height: 16),
-                  Text('No days off scheduled', style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    'No days off scheduled',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
                 ],
               ),
             )
@@ -83,10 +90,16 @@ class DaysOffCard extends StatelessWidget {
               children: [
                 Text(
                   '${DateFormat('MMM dd, yyyy').format(startDate)} - ${DateFormat('MMM dd, yyyy').format(endDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(reason, style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                Text(
+                  reason,
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                ),
               ],
             ),
           ),
