@@ -241,7 +241,7 @@ class Home extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // ✅ FAB "Add Package" réservé à l’admin
+              // ✅ FAB "Add Package" for Admins only
               if (isSignedIn)
                 FutureBuilder<bool>(
                   future: AuthService().isAdmin(),
@@ -260,6 +260,7 @@ class Home extends StatelessWidget {
                             final isAdminConfirmed = await AuthService()
                                 .isAdmin();
                             if (!isAdminConfirmed) {
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Admin rights required'),
@@ -268,6 +269,7 @@ class Home extends StatelessWidget {
                               return;
                             }
 
+                            if (!context.mounted) return;
                             final messenger = ScaffoldMessenger.of(context);
                             final created = await showModalBottomSheet<bool>(
                               context: context,
@@ -295,8 +297,7 @@ class Home extends StatelessWidget {
                     );
                   },
                 ),
-
-              // 🗓️ FAB pour réservation — visible pour tous
+              //  FAB "Book Appointment" visible to all
               FloatingActionButton(
                 heroTag: 'fab-calendar',
                 tooltip: 'Book Appointment',
