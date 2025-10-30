@@ -3,7 +3,7 @@ import '../../utils/validators.dart';
 import 'registration_screen.dart';
 import 'password_reset_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../pages/StaffNavigation.dart';
+import '../../pages/Staff_navigation.dart';
 import '../../main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 

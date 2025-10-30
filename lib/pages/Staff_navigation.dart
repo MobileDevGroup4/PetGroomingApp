@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/rendering.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'StaffDashboard.dart';
+import 'Staff_dashboard.dart';
 import 'staff_profile.dart';
 import 'staff_aviability.dart';
 import 'staff_schedule.dart';
