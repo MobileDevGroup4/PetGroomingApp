@@ -394,10 +394,7 @@ class _BookingTile extends StatelessWidget {
         ],
       ),
       trailing: _StatusChip(status: status),
-      onTap: () {
-        // Optionally: navigate to a BookingDetails page
-        // Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingDetailsPage(bookingId: ...)));
-      },
+      onTap: () {},
     );
   }
 }

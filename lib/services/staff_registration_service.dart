@@ -1,4 +1,3 @@
-// lib/services/staff_registration_service.dart
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,17 +6,16 @@ import '../../firebase_options.dart';
 class StaffRegistrationService {
   static const _profilesCol = 'profiles';
 
-  /// Creates an Auth user with a REQUIRED temporary password
-  /// and seeds profiles/{uid} with isStaff: true (baseline).
   static Future<String> createAuthUserAndProfile({
     required String name,
     required String email,
-    required String tempPassword, // <-- REQUIRED now
+    required String tempPassword,
     String? phone,
     String? address,
     bool isStaff = true,
+    bool sendVerification = false,
+    String languageCode = 'en',
   }) async {
-    // Basic guard
     if (tempPassword.length < 6) {
       throw ArgumentError('Temporary password must be at least 6 characters.');
     }
@@ -26,20 +24,23 @@ class StaffRegistrationService {
     final auth2 = FirebaseAuth.instanceFor(app: secondary);
 
     try {
-      // 1) Create the new auth user on the secondary app
+      auth2.setLanguageCode(languageCode);
+
       final cred = await auth2.createUserWithEmailAndPassword(
         email: email.trim(),
         password: tempPassword,
       );
       final uid = cred.user!.uid;
+      final canonicalEmail = cred.user!.email ?? email.trim();
 
-      // 2) Seed/Upsert the profile doc with isStaff: true baseline
+      await cred.user!.updateDisplayName(name.trim());
+
       final db = FirebaseFirestore.instance;
       final now = FieldValue.serverTimestamp();
       await db.collection(_profilesCol).doc(uid).set({
         'uid': uid,
         'name': name.trim(),
-        'email': email.trim(),
+        'email': canonicalEmail, // store the exact email Firebase has
         'phone': (phone?.trim().isEmpty ?? true) ? null : phone!.trim(),
         'address': (address?.trim().isEmpty ?? true) ? null : address!.trim(),
         'photoUrl': null,
@@ -48,9 +49,12 @@ class StaffRegistrationService {
         'updatedAt': now,
       }, SetOptions(merge: true));
 
+      if (sendVerification && auth2.currentUser != null) {
+        await auth2.currentUser!.sendEmailVerification();
+      }
+
       return uid;
     } finally {
-      // 3) Clean up the secondary session/app
       try {
         await auth2.signOut();
       } catch (_) {}
