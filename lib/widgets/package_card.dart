@@ -340,8 +340,9 @@ class _PackageCardState extends State<PackageCard> {
                                                     await _repo.deletePackage(
                                                       p.id,
                                                     );
-                                                    if (!context.mounted)
+                                                    if (!context.mounted) {
                                                       return;
+                                                    }
                                                     ScaffoldMessenger.of(
                                                       context,
                                                     ).showSnackBar(
@@ -509,6 +510,7 @@ class _PackageCardState extends State<PackageCard> {
                               initialDate: endAt ?? now,
                             );
                             if (d == null) return;
+                            if (!ctx.mounted) return;
                             final t = await showTimePicker(
                               context: ctx,
                               initialTime: endAt != null
