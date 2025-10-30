@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'staff_dashboard.dart';
 import 'staff_profile.dart';
-import 'staff_aviability.dart';
+import 'staff_availability.dart';
 import 'staff_schedule.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
