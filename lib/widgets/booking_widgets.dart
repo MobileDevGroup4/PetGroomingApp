@@ -11,6 +11,7 @@ class BookingCard extends StatelessWidget {
   final String Function(Timestamp) formatTime;
   final String Function(Timestamp, Timestamp) calculateDuration;
   final VoidCallback? onTap;
+  final String? status;
 
   const BookingCard({
     super.key,
@@ -23,11 +24,46 @@ class BookingCard extends StatelessWidget {
     required this.formatTime,
     required this.calculateDuration,
     this.onTap,
+    this.status,
   });
 
   String _getInitial(String name) {
     if (name.isEmpty) return '?';
     return name[0].toUpperCase();
+  }
+
+  Color _getStatusColor(String? status) {
+    if (status == null) return Colors.grey;
+    switch (status.toLowerCase()) {
+      case 'started':
+        return Colors.blue;
+      case 'inprogress':
+      case 'in_progress':
+        return const Color(0xFF6C63FF);
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  String _getStatusLabel(String? status) {
+    if (status == null) return 'Pending';
+    switch (status.toLowerCase()) {
+      case 'started':
+        return 'Started';
+      case 'inprogress':
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Pending';
+    }
   }
 
   @override
@@ -66,36 +102,70 @@ class BookingCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(userName.isEmpty ? 'Unknown User' : userName,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text(formatDate(startTime),
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(userName.isEmpty ? 'Unknown User' : userName,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      Text(formatDate(startTime),
+                          style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(status).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _getStatusColor(status),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    _getStatusLabel(status),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _getStatusColor(status),
+                    ),
+                  ),
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
             Text(serviceName.isEmpty ? 'Unknown Service' : serviceName,
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black54)),
+
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _buildTimeCard(
-                      'Check In', formatTime(startTime), 'On time', const Color(0xFF4CAF50), Icons.login),
+                    'Check In',
+                    formatTime(startTime),
+                    'On time',
+                    const Color(0xFF4CAF50),
+                    Icons.login,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTimeCard(
-                      'Check Out', formatTime(endTime), 'On time', const Color(0xFFFF6B9D), Icons.logout),
+                    'Check Out',
+                    formatTime(endTime),
+                    'On time',
+                    const Color(0xFFFF6B9D),
+                    Icons.logout,
+                  ),
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
             Text('Duration: ${calculateDuration(startTime, endTime)}'),
             Text('Pet: ${petName.isEmpty ? 'Unknown Pet' : petName}'),
