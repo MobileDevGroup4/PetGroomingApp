@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class BookingCard extends StatelessWidget {
   final String userName;
   final String petName;
-  final String serviceName;
+  final String itemName; // Changed from serviceName → Firestore field name
   final Timestamp startTime;
   final Timestamp endTime;
   final String Function(Timestamp) formatDate;
@@ -17,7 +17,7 @@ class BookingCard extends StatelessWidget {
     super.key,
     required this.userName,
     required this.petName,
-    required this.serviceName,
+    required this.itemName,
     required this.startTime,
     required this.endTime,
     required this.formatDate,
@@ -87,7 +87,7 @@ class BookingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header with user + status
             Row(
               children: [
                 CircleAvatar(
@@ -115,7 +115,8 @@ class BookingCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: _getStatusColor(status).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -137,18 +138,27 @@ class BookingCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 12),
-            Text(serviceName.isEmpty ? 'Unknown Service' : serviceName,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black54)),
+
+            // Service / Item name (from Firestore)
+            Text(
+              itemName.isEmpty ? 'Unknown Package' : itemName,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black54,
+              ),
+            ),
 
             const SizedBox(height: 12),
+
+            // Check-in and Check-out times
             Row(
               children: [
                 Expanded(
                   child: _buildTimeCard(
-                    'Check In',
+                    'Start Time',
                     formatTime(startTime),
-                    'On time',
+                    'Scheduled',
                     const Color(0xFF4CAF50),
                     Icons.login,
                   ),
@@ -156,9 +166,9 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTimeCard(
-                    'Check Out',
+                    'End Time',
                     formatTime(endTime),
-                    'On time',
+                    'Scheduled',
                     const Color(0xFFFF6B9D),
                     Icons.logout,
                   ),
@@ -167,6 +177,8 @@ class BookingCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 12),
+
+            // Duration + Pet name
             Text('Duration: ${calculateDuration(startTime, endTime)}'),
             Text('Pet: ${petName.isEmpty ? 'Unknown Pet' : petName}'),
           ],
@@ -175,7 +187,8 @@ class BookingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeCard(String label, String time, String status, Color color, IconData icon) {
+  Widget _buildTimeCard(
+      String label, String time, String status, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -188,11 +201,15 @@ class BookingCard extends StatelessWidget {
           Row(children: [
             Icon(icon, color: color, size: 16),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text(label,
+                style: const TextStyle(fontSize: 12, color: Colors.black54)),
           ]),
           const SizedBox(height: 4),
-          Text(time, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          Text(status, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text(time,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(status,
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ],
       ),
     );

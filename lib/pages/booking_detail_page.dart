@@ -190,6 +190,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   Widget build(BuildContext context) {
     final start = widget.data['startTime'] as Timestamp?;
     final end = widget.data['endTime'] as Timestamp?;
+    final notes = widget.data['notes'] as String?;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -248,6 +249,52 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     ],
                   ),
                 ]),
+                // Notes Section
+                if (notes != null && notes.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _sectionHeader('Customer Notes', Icons.note_alt_outlined),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF6C63FF).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6C63FF).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.notes,
+                            color: Color(0xFF6C63FF),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            notes,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              height: 1.5,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (widget.petData != null) ...[
                   const SizedBox(height: 24),
                   _sectionHeader('Pet Information', Icons.pets),

@@ -205,10 +205,10 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                       return BookingCard(
                         userName: userProfile['name'] ?? 'Unknown',
                         petName: petData['name'] ?? 'Unknown',
-                        serviceName: packageData['name'] ?? 'Unknown',
+                        itemName: data['itemName'] ?? packageData['itemName'] ?? 'Unknown',
                         startTime: data['startTime'] ?? Timestamp.now(),
                         endTime: data['endTime'] ?? Timestamp.now(),
-                        status: data['status'] as String?, 
+                        status: data['status'] as String?,
                         formatDate: _formatDate,
                         formatTime: _formatTime,
                         calculateDuration: _duration,
