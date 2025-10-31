@@ -20,7 +20,6 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
   static const Color primaryPurple = Color(0xFF6C63FF);
   static const Color lightPurpleBackground = Color(0xFFFAF4FA);
 
-  /// Fetch bookings with related user, pet, and package data
   Future<List<Map<String, dynamic>>> _fetchBookings() async {
     try {
       final snapshot = await _firestore
@@ -79,7 +78,6 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
     }
   }
 
-  // Formatting helpers
   String _formatDate(Timestamp? t) =>
       t == null ? 'N/A' : DateFormat('dd MMM yyyy').format(t.toDate());
   String _formatTime(Timestamp? t) =>
@@ -207,9 +205,10 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                       return BookingCard(
                         userName: userProfile['name'] ?? 'Unknown',
                         petName: petData['name'] ?? 'Unknown',
-                        serviceName: packageData['name'] ?? 'Unknown',
+                        itemName: data['itemName'] ?? packageData['itemName'] ?? 'Unknown',
                         startTime: data['startTime'] ?? Timestamp.now(),
                         endTime: data['endTime'] ?? Timestamp.now(),
+                        status: data['status'] as String?,
                         formatDate: _formatDate,
                         formatTime: _formatTime,
                         calculateDuration: _duration,
@@ -227,7 +226,7 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
                                 petData: petData,
                               ),
                             ),
-                          );
+                          ).then((_) => setState(() {}));
                         },
                       );
                     },

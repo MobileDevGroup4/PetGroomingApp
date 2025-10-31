@@ -9,6 +9,7 @@ import 'staff_profile.dart';
 import 'staff_availability.dart';
 import 'staff_schedule.dart';
 import '../services/auth_service.dart';
+import '../screens/auth/login_screen.dart';
 import '../main.dart';
 
 class StaffNavigation extends StatefulWidget {
@@ -34,24 +35,28 @@ class _StaffNavigationState extends State<StaffNavigation> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _initProfileListener();
 
-    // Verify staff status on init
-    _verifyStaffStatus();
+    // Auto-redirect if user is not logged in
+    _checkUserLoggedIn();
+
+    // Listen for profile changes
+    _initProfileListener();
   }
 
-  Future<void> _verifyStaffStatus() async {
+  Future<void> _checkUserLoggedIn() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      // User not logged in, redirect to login
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const App()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
       }
       return;
     }
 
+    // Verify staff status
     try {
       final doc = await FirebaseFirestore.instance
           .collection('profiles')
@@ -61,9 +66,9 @@ class _StaffNavigationState extends State<StaffNavigation> {
       final isStaff = doc.exists && (doc.data()?['isStaff'] as bool? ?? false);
 
       if (!isStaff && mounted) {
-        // If not staff, redirect to main app
+        // Not staff, redirect
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const App()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
       }
@@ -76,29 +81,26 @@ class _StaffNavigationState extends State<StaffNavigation> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Listen to real-time updates of the user's profile document
     _profileSub = FirebaseFirestore.instance
         .collection('profiles')
         .doc(user.uid)
         .snapshots()
         .listen((snapshot) {
-          if (!snapshot.exists) return;
+      if (!snapshot.exists) return;
 
-          final data = snapshot.data()!;
-          final name = (data['name'] as String?)?.trim();
-          final imageUrl = data['profileImage'] as String?;
+      final data = snapshot.data()!;
+      final name = (data['name'] as String?)?.trim();
+      final imageUrl = data['profileImage'] as String?;
 
-          if (mounted) {
-            setState(() {
-              _headerName = name != null && name.isNotEmpty
-                  ? name
-                  : (user.displayName ??
-                        user.email?.split('@').first ??
-                        'Staff');
-              _headerImageUrl = imageUrl;
-            });
-          }
+      if (mounted) {
+        setState(() {
+          _headerName = name != null && name.isNotEmpty
+              ? name
+              : (user.displayName ?? user.email?.split('@').first ?? 'Staff');
+          _headerImageUrl = imageUrl;
         });
+      }
+    });
   }
 
   @override
@@ -111,7 +113,6 @@ class _StaffNavigationState extends State<StaffNavigation> {
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      // Hide header when scrolling up, show when scrolling down
       if (_scrollController.position.userScrollDirection ==
           ScrollDirection.reverse) {
         if (_isHeaderVisible) {
@@ -179,7 +180,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                     gradient: LinearGradient(
                       colors: [
                         primaryPurple,
-                        primaryPurple.withValues(alpha: 0.85),
+                        primaryPurple.withOpacity(0.85),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -189,7 +190,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryPurple.withValues(alpha: 0.3),
+                        color: primaryPurple.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -204,10 +205,9 @@ class _StaffNavigationState extends State<StaffNavigation> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Avatar
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        backgroundColor: Colors.white.withOpacity(0.2),
                         backgroundImage: _headerImageUrl != null
                             ? NetworkImage(_headerImageUrl!)
                             : null,
@@ -225,7 +225,6 @@ class _StaffNavigationState extends State<StaffNavigation> {
                             : null,
                       ),
                       const SizedBox(width: 12),
-                      // Greeting
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,14 +242,13 @@ class _StaffNavigationState extends State<StaffNavigation> {
                             Text(
                               today,
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: Colors.white.withOpacity(0.9),
                                 fontSize: 13,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      // Logout button
                       IconButton(
                         onPressed: () => _showLogoutDialog(context),
                         icon: const Icon(Icons.logout, color: Colors.white),
@@ -271,7 +269,7 @@ class _StaffNavigationState extends State<StaffNavigation> {
             currentPageIndex = index;
           });
         },
-        indicatorColor: primaryPurple.withValues(alpha: 0.2),
+        indicatorColor: primaryPurple.withOpacity(0.2),
         selectedIndex: currentPageIndex,
         destinations: destinations,
       ),
@@ -296,23 +294,20 @@ class _StaffNavigationState extends State<StaffNavigation> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                Navigator.of(context).pop();
-
+                Navigator.of(context).pop(); // Close the dialog
                 try {
                   await AuthService().logout();
 
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: const Text('Logged out successfully'),
-                        backgroundColor: primaryPurple,
-                      ),
-                    );
-                  }
+                  if (!mounted) return;
+
+                  // Navigate to login screen and remove all previous pages
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
                 } catch (e) {
                   if (mounted) {
-                    scaffoldMessenger.showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error: $e')),
                     );
                   }
