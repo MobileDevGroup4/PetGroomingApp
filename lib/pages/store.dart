@@ -1,9 +1,13 @@
+// lib/pages/store.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/product.dart';
 import '../repositories/products_repository.dart';
 import '../services/cart_service.dart';
+import '../services/auth_service.dart';
 import 'cart_page.dart';
+import 'admin/admin_inventory_page.dart';
 
 class StorePage extends StatefulWidget {
   const StorePage({super.key});
@@ -48,6 +52,35 @@ class _StorePageState extends State<StorePage> {
         title: const Text('Pet Store'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // Admin Inventory Management Button
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, authSnap) {
+              if (!authSnap.hasData) return const SizedBox.shrink();
+
+              return FutureBuilder<bool>(
+                future: AuthService().isAdmin(),
+                builder: (context, adminSnap) {
+                  final isAdmin = adminSnap.data ?? false;
+                  if (!isAdmin) return const SizedBox.shrink();
+
+                  return IconButton(
+                    icon: const Icon(Icons.inventory_2),
+                    tooltip: 'Manage Inventory',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AdminInventoryPage(),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+          // Shopping Cart Button
           Stack(
             children: [
               IconButton(
