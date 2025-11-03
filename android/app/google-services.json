@@ -23,6 +23,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276244864241:android:1376e1e366aa2fe4019d50",
+        "android_client_info": {
+          "package_name": "com.petcare.petgroomingapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC35ehSNM39VHGoqVIcd0sPzf2aGbxXMPI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276244864241:android:35efb3f057ad2011019d50",
+        "android_client_info": {
+          "package_name": "com.petgrooming.mobileapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC35ehSNM39VHGoqVIcd0sPzf2aGbxXMPI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"
