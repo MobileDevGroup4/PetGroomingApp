@@ -56,3 +56,6 @@ tools\admin\serviceAccount.json
 tools
 accounts.csv
 .firebaserc
+
+# Android signing key
+android/key.properties
